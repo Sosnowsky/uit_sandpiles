@@ -1,0 +1,8 @@
+criticality: 4
+rows: 3
+columns: 3
+input: 'in_map.txt'
+output: 
+  map: 'out_map.txt'
+  data: 'output.txt'
+seed: 666
