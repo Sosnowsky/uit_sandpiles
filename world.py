@@ -81,13 +81,13 @@ class World:
 		return s
 
 	def drive(self, n, verbose=False):
-		with open(self.OUTPUT, w) as data_file:
+		with open(self.OUTPUT, 'w') as data_file:
 			for i in range(n):
 				self.step()
-				data_file.write(self.info + '\n')
+				data_file.write(self.info() + '\n')
 				if verbose:
-					print(self.draw())
+					print(self.draw() + self.info() + '\n')
 
 		if self.SAVE != '':
-			with open(self.SAVE) as save_file:
+			with open(self.SAVE, 'w') as save_file:
 				save_file.write(self.draw())
