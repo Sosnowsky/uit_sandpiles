@@ -1,5 +1,5 @@
-in_map.txt
-output.txt
-in_map.txt
-__pycache__/*
-.vscode
+./in_map.txt
+./output.txt
+./in_map.txt
+./__pycache__/*
+./.vscode
