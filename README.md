@@ -7,7 +7,7 @@ The config file follows yaml syntax and should include the following:
 criticality: 4
 rows: 10
 columns: 10
-input: ''
+input: 'in_map.txt'
 output: 
   map: 'out_map.txt'
   data: 'output.txt'

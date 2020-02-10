@@ -3,6 +3,6 @@ rows: 10
 columns: 10
 input: ''
 output: 
-  map: 'out_map.txt'
-  data: 'output.txt'
+  map: 'data/out_map.txt'
+  data: 'data/output.txt'
 seed: 666
