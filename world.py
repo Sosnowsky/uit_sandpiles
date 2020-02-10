@@ -18,6 +18,12 @@ class World:
 
 		self.init_plane()
 
+		with open(self.OUTPUT, 'a+') as data_file:
+			data_file.write(
+				'========================================================\n')
+			data_file.write(
+				't; topples; grains; flux; last insertion;\n')
+
 	def init_plane(self):
 		if self.INPUT == '':
 			self.plane = np.fromfunction(np.vectorize(lambda r, c: random.randint(
@@ -67,7 +73,7 @@ class World:
 				self.put(r, c - 1, placed=False)
 
 	def info(self):
-		s = 't={}; topples={}; grains={}; flux={}; last=[{}, {}];'.format(
+		s = '{}; {}; {}; {}; [{}, {}];'.format(
 			self.t, self.topples, self.grains, self.flux, self.lr, self.lc)
 		return s
 
@@ -81,7 +87,7 @@ class World:
 		return s
 
 	def drive(self, n, verbose=False):
-		with open(self.OUTPUT, 'w') as data_file:
+		with open(self.OUTPUT, 'a+') as data_file:
 			for i in range(n):
 				self.step()
 				data_file.write(self.info() + '\n')
@@ -89,5 +95,5 @@ class World:
 					print(self.draw() + self.info() + '\n')
 
 		if self.SAVE != '':
-			with open(self.SAVE, 'w') as save_file:
+			with open(self.SAVE, 'w+') as save_file:
 				save_file.write(self.draw())
