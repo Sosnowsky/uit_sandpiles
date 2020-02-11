@@ -15,6 +15,8 @@ class World:
 		self.OUTPUT = config['output']['data']
 
 		self.t = 0
+		self.topples = 0  # cumulative?
+		self.flux = 0
 
 		self.init_plane()  # Initiate the plane randomly or from file
 
@@ -51,12 +53,23 @@ class World:
 		self.put(random.randint(0, self.ROWS - 1),
 		         random.randint(0, self.COLS - 1))
 
-	# Modifiable boundary condition. Voids the grain by default
+	# Modifiable boundary condition
 	def boundary(self, r, c):
+		self.rollover(r, c)
+
+	def void(self, r, c):
 		self.flux += 1
 		self.grains -= 1
 
+	def rollover(self, r, c):
+		if r == -1 or r == self.ROWS:
+			self.flux += 1
+			self.grains -= 1
+		else:
+			self.put(r, c % self.COLS, placed=False)
+
 	# Place n grains in a cell and recursively calculate the consequences
+
 	def put(self, r, c, n=1, placed=True):
 		# Call boundary func if the indecies exceed the world plane
 		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
