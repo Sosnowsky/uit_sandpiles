@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
 class World:
@@ -19,6 +21,7 @@ class World:
 		self.flux = 0
 
 		self.init_plane()  # Initiate the plane randomly or from file
+		self.reset_animation()
 
 		# Write header to data file
 		with open(self.OUTPUT, 'a+') as data_file:
@@ -26,6 +29,26 @@ class World:
 				'========================================================\n')
 			data_file.write(
 				't; topples; grains; flux; last insertion;\n')
+
+	def reset_animation(self):
+		self.frames = []
+		self.canvas = plt.figure()
+
+	def show_animation(self):
+		self.im = plt.imshow(
+			self.frames[0], animated=True, cmap='jet', vmax=20, vmin=0)
+
+		ani = animation.FuncAnimation(self.canvas, self.get_frame, frames=range(
+			len(self.frames)), interval=50, blit=True, repeat=True, repeat_delay=1000)
+		plt.show()
+		self.reset_animation()
+
+	def get_frame(self, i):
+		self.im.set_array(self.frames[i])
+		return self.im,
+
+	def add_frame(self):
+		self.frames.append(np.copy(self.plane))
 
 	def init_plane(self):
 		if self.INPUT == '':  # initiate plane randomly
@@ -45,23 +68,26 @@ class World:
 		# Calculate the number of grains
 		self.grains = sum(self.plane.flatten())
 
-	def step(self):
+	def step(self, animate=False):
 		self.topples = 0  # cumulative?
 		self.flux = 0   # cumulative?
 
 		# Place a grain in a random cell
 		self.put(random.randint(0, self.ROWS - 1),
-		         random.randint(0, self.COLS - 1))
+		         random.randint(0, self.COLS - 1), animate=animate)
 
 	# Modifiable boundary condition
 	def boundary(self, r, c):
-		self.rollover(r, c)
+		self.void(r, c)
 
 	def void(self, r, c):
 		self.flux += 1
 		self.grains -= 1
 
 	def rollover(self, r, c):
+		self.put(r % self.ROWS, c % self.COLS, placed=False)
+
+	def rollover_y(self, r, c):
 		if r == -1 or r == self.ROWS:
 			self.flux += 1
 			self.grains -= 1
@@ -69,12 +95,17 @@ class World:
 			self.put(r, c % self.COLS, placed=False)
 
 	# Place n grains in a cell and recursively calculate the consequences
+	def put(self, r, c, n=1, placed=True, animate=False):
 
-	def put(self, r, c, n=1, placed=True):
 		# Call boundary func if the indecies exceed the world plane
 		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
 			self.boundary(r, c)
 		else:
+			if animate:
+				tmp = self.plane[r][c]
+				self.plane[r][c] = 20
+				self.add_frame()
+				self.plane[r][c] = tmp
 			if placed:  # If the function was called at the beginning of a timestep
 				self.grains += n
 				self.lr = r
@@ -90,13 +121,13 @@ class World:
 				for i in range(self.CRIT):
 					mod = i % self.CRIT
 					if mod == 0:
-						self.put(r + 1, c, placed=False)
+						self.put(r + 1, c, placed=False, animate=animate)
 					elif mod == 1:
-						self.put(r, c + 1, placed=False)
+						self.put(r, c + 1, placed=False, animate=animate)
 					elif mod == 2:
-						self.put(r - 1, c, placed=False)
+						self.put(r - 1, c, placed=False, animate=animate)
 					elif mod == 3:
-						self.put(r, c - 1, placed=False)
+						self.put(r, c - 1, placed=False, animate=animate)
 
 	# Returns info about the last timestep
 	def info(self):
@@ -116,10 +147,10 @@ class World:
 
 	# Runs the simulation for n timesteps, optionally printing the world
 	# plane and info at each timestep. Also saves data and map.
-	def drive(self, n, verbose=False):
+	def drive(self, n, verbose=False, animate=False):
 		with open(self.OUTPUT, 'a+') as data_file:
 			for i in range(n):
-				self.step()
+				self.step(animate=animate)
 				data_file.write(self.info() + '\n')
 				if verbose:
 					print(self.draw() + self.info() + '\n')
@@ -127,3 +158,6 @@ class World:
 		if self.SAVE != '':
 			with open(self.SAVE, 'w+') as save_file:
 				save_file.write(self.draw())
+
+		if animate:
+			self.show_animation()
