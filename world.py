@@ -17,7 +17,7 @@ class World:
 		self.OUTPUT = config['output']['data']
 
 		self.t = 0
-		self.topples = 0  # cumulative?
+		self.topples = 0
 		self.flux = 0
 
 		self.init_plane()  # Initiate the plane randomly or from file
@@ -29,26 +29,6 @@ class World:
 				'========================================================\n')
 			data_file.write(
 				't; topples; grains; flux; last insertion;\n')
-
-	def reset_animation(self):
-		self.frames = []
-		self.canvas = plt.figure()
-
-	def show_animation(self):
-		self.im = plt.imshow(
-			self.frames[0], animated=True, cmap='jet', vmax=20, vmin=0)
-
-		ani = animation.FuncAnimation(self.canvas, self.get_frame, frames=range(
-			len(self.frames)), interval=50, blit=True, repeat=True, repeat_delay=1000)
-		plt.show()
-		self.reset_animation()
-
-	def get_frame(self, i):
-		self.im.set_array(self.frames[i])
-		return self.im,
-
-	def add_frame(self):
-		self.frames.append(np.copy(self.plane))
 
 	def init_plane(self):
 		if self.INPUT == '':  # initiate plane randomly
@@ -129,6 +109,25 @@ class World:
 					elif mod == 3:
 						self.put(r, c - 1, placed=False, animate=animate)
 
+	# Runs the simulation for n timesteps, optionally printing the world
+	# plane and info at each timestep. Also saves data and map.
+	def drive(self, n, verbose=1, animate=False):
+		with open(self.OUTPUT, 'a+') as data_file:
+			for i in range(n):
+				self.step(animate=animate)
+				data_file.write(self.info() + '\n')
+				if verbose == 1:
+					print('\r{}/{}'.format(i, n), end='')
+				if verbose == 2:
+					print(self.draw() + self.info())
+
+		if self.SAVE != '':
+			with open(self.SAVE, 'w+') as save_file:
+				save_file.write(self.draw())
+
+		if animate:
+			self.show_animation()
+
 	# Returns info about the last timestep
 	def info(self):
 		s = '{}; {}; {}; {}; [{}, {}];'.format(
@@ -145,19 +144,22 @@ class World:
 
 		return s
 
-	# Runs the simulation for n timesteps, optionally printing the world
-	# plane and info at each timestep. Also saves data and map.
-	def drive(self, n, verbose=False, animate=False):
-		with open(self.OUTPUT, 'a+') as data_file:
-			for i in range(n):
-				self.step(animate=animate)
-				data_file.write(self.info() + '\n')
-				if verbose:
-					print(self.draw() + self.info() + '\n')
+	def reset_animation(self):
+		self.frames = []
+		self.canvas = plt.figure()
 
-		if self.SAVE != '':
-			with open(self.SAVE, 'w+') as save_file:
-				save_file.write(self.draw())
+	def show_animation(self):
+		self.im = plt.imshow(
+			self.frames[0], animated=True, cmap='jet', vmax=20, vmin=0)
 
-		if animate:
-			self.show_animation()
+		ani = animation.FuncAnimation(self.canvas, self.get_frame, frames=range(
+			len(self.frames)), interval=50, blit=True, repeat=True, repeat_delay=1000)
+		plt.show()
+		self.reset_animation()
+
+	def get_frame(self, i):
+		self.im.set_array(self.frames[i])
+		return self.im,
+
+	def add_frame(self):
+		self.frames.append(np.copy(self.plane))
