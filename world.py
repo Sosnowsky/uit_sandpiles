@@ -6,6 +6,7 @@ class World:
 
 	def __init__(self, config):
 		random.seed(config['seed'])
+		np.random.seed(config['seed'])
 
 		self.COLS = config['columns']
 		self.ROWS = config['rows']
@@ -44,6 +45,7 @@ class World:
 		self.grains = sum(self.plane.flatten())
 
 	def step(self, p_diff, p_crits):
+
 		lost = 0
 		added = 0
 		diff = np.zeros((self.ROWS, self.COLS), dtype=int)
@@ -53,6 +55,19 @@ class World:
 				r_, c_ = self.rand_pos()
 				p_diff[r_][c_] += 1
 		crits = 0
+		self.grains += added
+
+		def put(r, c):
+			nonlocal lost
+			try:
+				diff[r][c] += 1
+			except IndexError:
+				coords = self.bound(r, c)
+				if coords:
+					diff[coords[0]][coords[1]] += 1
+				else:
+					lost += 1
+					self.grains -= 1
 
 		for r in range(self.ROWS):
 			for c in range(self.COLS):
@@ -63,42 +78,10 @@ class World:
 				if self.plane[r][c] >= 4:
 					crits += 1
 					diff[r][c] -= 4
-					try:
-						diff[r - 1][c] += 1
-					except IndexError:
-						coords = self.bound(r - 1, c)
-						if coords:
-							diff[coords[0]][coords[1]] += 1
-						else:
-							lost += 1
-							self.grains -= 1
-					try:
-						diff[r + 1][c] += 1
-					except IndexError:
-						coords = self.bound(r + 1, c)
-						if coords:
-							diff[coords[0]][coords[1]] += 1
-						else:
-							lost += 1
-							self.grains -= 1
-					try:
-						diff[r][c - 1] += 1
-					except IndexError:
-						coords = self.bound(r, c - 1)
-						if coords:
-							diff[coords[0]][coords[1]] += 1
-						else:
-							lost += 1
-							self.grains -= 1
-					try:
-						diff[r][c + 1] += 1
-					except IndexError:
-						coords = self.bound(r, c + 1)
-						if coords:
-							diff[coords[0]][coords[1]] += 1
-						else:
-							lost += 1
-							self.grains -= 1
+					put(r - 1, c)
+					put(r + 1, c)
+					put(r, c - 1)
+					put(r, c + 1)
 
 		return crits, added, lost, diff
 
