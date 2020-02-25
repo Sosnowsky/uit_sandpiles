@@ -1,7 +1,5 @@
 import random
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
 
 class World:
@@ -12,22 +10,24 @@ class World:
 		self.COLS = config['columns']
 		self.ROWS = config['rows']
 		self.INPUT = config['input']
+		self.PROB = config['probability']
+		self.RUNNING = config['running']
 		self.SAVE = config['output']['map']
 		self.OUTPUT = config['output']['data']
 
 		self.grains = 0
-		self.plane = np.array()
+		self.plane = np.array(None)
 
 		self.init_plane()  # Initiate the plane randomly or from file
 
 		# Write header to data file
 		with open(self.OUTPUT, 'a+') as data_file:
 			data_file.write(
-				'=========================================\n')
+				'========================================================\n')
 			data_file.write(
-				't; topples; grains; flux; last insertion;\n')
+				'critical cells; added grains; lost grains; total grains;\n')
 			data_file.write(
-				'=========================================\n')
+				'========================================================\n')
 
 	def init_plane(self):
 		if self.INPUT == '':  # initiate plane randomly
@@ -45,22 +45,24 @@ class World:
 
 	def step(self, p_diff, p_crits):
 		lost = 0
+		added = 0
 		diff = np.zeros((self.ROWS, self.COLS), dtype=int)
-		if crits == 0 or self.running:
-			pass  # Add new grains- binomial stuff
-		else:
-			added = 0
+		if p_crits == 0 or self.RUNNING:
+			added = np.random.binomial(self.ROWS * self.COLS, self.PROB)
+			for i in range(added):
+				r_, c_ = self.rand_pos()
+				p_diff[r_][c_] += 1
 		crits = 0
 
-		for r in range(len(self.plane)):
-			for c in range(len(r)):
+		for r in range(self.ROWS):
+			for c in range(self.COLS):
 				if p_diff[r][c] == 0:
 					continue
 
 				self.plane[r][c] += p_diff[r][c]
 				if self.plane[r][c] >= 4:
 					crits += 1
-					diff -= 4
+					diff[r][c] -= 4
 					try:
 						diff[r - 1][c] += 1
 					except IndexError:
@@ -69,6 +71,7 @@ class World:
 							diff[coords[0]][coords[1]] += 1
 						else:
 							lost += 1
+							self.grains -= 1
 					try:
 						diff[r + 1][c] += 1
 					except IndexError:
@@ -77,6 +80,7 @@ class World:
 							diff[coords[0]][coords[1]] += 1
 						else:
 							lost += 1
+							self.grains -= 1
 					try:
 						diff[r][c - 1] += 1
 					except IndexError:
@@ -85,6 +89,7 @@ class World:
 							diff[coords[0]][coords[1]] += 1
 						else:
 							lost += 1
+							self.grains -= 1
 					try:
 						diff[r][c + 1] += 1
 					except IndexError:
@@ -93,16 +98,23 @@ class World:
 							diff[coords[0]][coords[1]] += 1
 						else:
 							lost += 1
+							self.grains -= 1
 
 		return crits, added, lost, diff
 
 	def bound(self, r, c):
-		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain
+		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain as tuple
 		return None
 		# /BOUNDARY CONDITION
 
+	def rand_pos(self):
+		r = random.randint(0, self.ROWS - 1)
+		c = random.randint(0, self.COLS - 1)
+		return r, c
+
 	# Runs the simulation for n timesteps and saves data
-	def drive(self, n, verbose=1, animate=False):
+
+	def drive(self, n, verbose=1):
 		with open(self.OUTPUT, 'a+') as data_file:
 			diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 			crits = 0
