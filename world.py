@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
 class World:
@@ -18,6 +20,8 @@ class World:
 
 		self.grains = 0
 		self.plane = np.array(None)
+
+		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
 		self.init_plane()  # Initiate the plane randomly or from file
 
@@ -97,20 +101,26 @@ class World:
 
 	# Runs the simulation for n timesteps and saves data
 
-	def drive(self, n, verbose=1):
+	def drive(self, n, verbose=1, animate=False):
+		if animate:
+			self.reset_animation()
 		with open(self.OUTPUT, 'a+') as data_file:
-			diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+			diff = self.persistent_diff
 			crits = 0
 			for i in range(n):
 				crits, added, lost, diff = self.step(diff, crits)
 				data_file.write('{};{};{};{};\n'.format(crits, added, lost, self.grains))
+				if animate:
+					self.add_frame()
 				if verbose == 1:
 					print('\r{}/{}'.format(i, n), end='')
 				elif verbose == 2:
 					print(self.draw() + '\n')
+			self.persistent_diff = diff
 			if verbose == 1:
 				print('\r{}/{}'.format(n, n))
-
+		if animate:
+			self.show_animation()
 		if self.SAVE != '':
 			with open(self.SAVE, 'w+') as save_file:
 				save_file.write(self.draw())
@@ -124,3 +134,23 @@ class World:
 			s += '\n'
 
 		return s
+
+	def reset_animation(self):
+		self.frames = []
+		self.canvas = plt.figure()
+
+	def show_animation(self):
+		self.im = plt.imshow(
+			self.frames[0], animated=True, cmap='jet', vmax=4, vmin=0)
+
+		ani = animation.FuncAnimation(self.canvas, self.get_frame, frames=range(
+			len(self.frames)), interval=10, blit=True, repeat=True, repeat_delay=1000)
+		plt.show()
+		self.reset_animation()
+
+	def get_frame(self, i):
+		self.im.set_array(self.frames[i])
+		return self.im,
+
+	def add_frame(self):
+		self.frames.append(np.copy(self.plane))
