@@ -24,7 +24,9 @@ class World:
 		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
 		self.stats = {
-                    'crits': []
+			'crits': [],
+			'lost': [],
+			'grains': []
 		}
 
 		self.init_plane()  # Initiate the plane randomly or from file
@@ -39,10 +41,11 @@ class World:
                             '========================================================\n')
 
 	def init_plane(self):
-		if self.INPUT == '':  # initiate plane randomly
+		if self.INPUT == '' or self.INPUT == 'OVERCRITICAL':  # initiate plane randomly
 			self.plane = np.fromfunction(np.vectorize(lambda r, c: random.randint(
                             0, 3)), (self.ROWS, self.COLS), dtype=int)
-
+			if self.INPUT == 'OVERCRITICAL':
+				self.persistent_diff = np.full((self.ROWS, self.COLS), 4)
 		else:  # Initiate plane from file
 			self.plane = np.empty((self.ROWS, self.COLS), dtype=int)
 			with open(self.INPUT, 'r') as file:
@@ -121,6 +124,8 @@ class World:
 				crits, added, lost, diff = self.step(diff, crits)
 				data_file.write('{};{};{};{};\n'.format(crits, added, lost, self.grains))
 				self.stats['crits'].append(crits)
+				self.stats['lost'].append(lost)
+				self.stats['grains'].append(self.grains)
 				if animate:
 					self.add_frame()
 				if verbose == 1:
@@ -138,6 +143,8 @@ class World:
 			self.show_animation()
 		else:
 			plt.plot(self.stats['crits'])
+			plt.plot(self.stats['lost'])
+			plt.plot(self.stats['grains'])
 			plt.show()
 
 	# Returns a map of the world plane
