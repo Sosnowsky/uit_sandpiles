@@ -146,6 +146,7 @@ class World:
 		ani = animation.FuncAnimation(self.canvas, self.get_frame, frames=range(
 			len(self.frames)), interval=10, blit=True, repeat=True, repeat_delay=1000)
 		plt.show()
+		ani.save('data/out_ani.mp4')
 		self.reset_animation()
 
 	def get_frame(self, i):
