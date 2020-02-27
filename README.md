@@ -17,7 +17,7 @@ output:
 
 `rows` and `columns` are integers respectively descriping the number of rows and columns of the world plane.
 
-`input` and `map` are strings respectively containing the path to an input and output file for the world map. If left empty, the world plane will be initiated with a uniform random distribution, and the final state of the world plane will not be saved. If the value of `input` is `"OVERCRITICAL"` the plane will be initiated randomly to a state where all cells are overcritical. The files are read from and written to with the following format:
+`input` and `map` are strings respectively containing the path to an input and output file for the world map. If left empty, the world plane will be initiated with a uniform random distribution, and the final state of the world plane will not be saved. The files are read from and written to with the following format:
 
 ```
 z[0][0];z[0][1];  ...  ;z[0][j];
