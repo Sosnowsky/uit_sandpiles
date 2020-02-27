@@ -32,28 +32,28 @@ class World:
 		self.init_plane()  # Initiate the plane randomly or from file
 
 		# Write header to data file
-		with open(self.OUTPUT, 'a+') as data_file:
-			data_file.write(
-                            '========================================================\n')
-			data_file.write(
-                            'critical cells; added grains; lost grains; total grains;\n')
-			data_file.write(
-                            '========================================================\n')
+		if self.INPUT == '':
+			with open(self.OUTPUT, 'a+') as data_file:
+				data_file.write(
+					'========================================================\n')
+				data_file.write(
+					'critical cells; added grains; lost grains; total grains;\n')
+				data_file.write(
+					'========================================================\n')
 
 	def init_plane(self):
-		if self.INPUT == '' or self.INPUT == 'OVERCRITICAL':  # initiate plane randomly
+		if self.INPUT == '':  # initiate plane randomly
 			self.plane = np.fromfunction(np.vectorize(lambda r, c: random.randint(
                             0, 3)), (self.ROWS, self.COLS), dtype=int)
-			if self.INPUT == 'OVERCRITICAL':
-				self.persistent_diff = np.full((self.ROWS, self.COLS), 4)
 		else:  # Initiate plane from file
 			self.plane = np.empty((self.ROWS, self.COLS), dtype=int)
 			with open(self.INPUT, 'r') as file:
 				for y, line in enumerate(file.readlines()):
 					self.plane[y] = np.array(list(map(int, line.rstrip(';\n\r ').split(';'))))
 
+			ph, ph_, ph__, self.persistent_diff = self.step(None, 1)
 		# Calculate the number of grains
-		self.grains = sum(self.plane.flatten())
+		self.grains = sum(self.plane.flatten()) + sum(self.persistent_diff.flatten())
 
 	# Runs one timestep
 	def step(self, p_diff, p_crits):
@@ -84,10 +84,11 @@ class World:
 
 		for r in range(self.ROWS):
 			for c in range(self.COLS):
-				if p_diff[r][c] == 0:
-					continue
+				if type(p_diff) != type(None):
+					if p_diff[r][c] == 0:
+						continue
 
-				self.plane[r][c] += p_diff[r][c]
+					self.plane[r][c] += p_diff[r][c]
 				if self.plane[r][c] >= 4:
 					crits += 1
 					diff[r][c] -= 4
@@ -142,9 +143,10 @@ class World:
 		if animate:
 			self.show_animation()
 		else:
-			plt.plot(self.stats['crits'])
-			plt.plot(self.stats['lost'])
-			plt.plot(self.stats['grains'])
+			plt.plot(self.stats['crits'], label='crits')
+			plt.plot(self.stats['lost'], label='lost')
+			plt.plot(self.stats['grains'], label='total grains')
+			plt.legend()
 			plt.show()
 
 	# Returns a map of the world plane
