@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from tqdm import tqdm
+import pyqtgraph as pg
+pg.setConfigOptions(antialias=True)
 
 
 class World:
@@ -25,7 +27,6 @@ class World:
 
 		self.stats = {
 			'crits': [],
-			'lost': [],
 			'grains': []
 		}
 
@@ -111,21 +112,28 @@ class World:
 		return r, c
 
 	# Runs the simulation for n timesteps and saves data
-	def drive(self, n, verbose=1, animate=False):
+	def drive(self, n, verbose=1, animate=False, graph=False):
 		if animate:
 			self.reset_animation()
-		with open(self.OUTPUT, 'a+') as data_file:
-			diff = self.persistent_diff
-			crits = 0
-			rng = range(n)
-			if verbose == 2:
-				rng = tqdm(rng, ncols=100)
+		pg_win = None
+		c_plot = None
+		t_plot = None
+		if graph:
+			pg_win = pg.GraphicsWindow()
+			c_plot = pg_win.addPlot(row=0, col=0, title='crits')
+			t_plot = pg_win.addPlot(row=1, col=0, title='total')
 
+		diff = self.persistent_diff
+		crits = 0
+		rng = range(n)
+		if verbose == 2:
+			rng = tqdm(rng, ncols=100)
+
+		with open(self.OUTPUT, 'a+') as data_file:
 			for i in rng:
 				crits, added, lost, diff = self.step(diff, crits)
 				data_file.write('{};{};{};{};\n'.format(crits, added, lost, self.grains))
 				self.stats['crits'].append(crits)
-				self.stats['lost'].append(lost)
 				self.stats['grains'].append(self.grains)
 				if animate:
 					self.add_frame()
@@ -135,19 +143,20 @@ class World:
 						print('')
 				elif verbose == 3:
 					print(self.draw() + '\n')
-			self.persistent_diff = diff
+				if graph and i % 50 == 0:
+					c_plot.plot(self.stats['crits'][-600:], clear=True)
+					t_plot.plot(self.stats['grains'][-10000:], clear=True)
+					pg.QtGui.QApplication.processEvents()
+
+		self.persistent_diff = diff
 
 		if self.SAVE != '':
 			with open(self.SAVE, 'w+') as save_file:
 				save_file.write(self.draw())
 		if animate:
 			self.show_animation()
-		else:
-			plt.plot(self.stats['crits'], label='crits')
-			plt.plot(self.stats['lost'], label='lost')
-			plt.plot(self.stats['grains'], label='total grains')
-			plt.legend()
-			plt.show()
+		if graph:
+			pg_win.close()
 
 	# Returns a map of the world plane
 	def draw(self):

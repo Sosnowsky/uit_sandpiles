@@ -1,3 +1,5 @@
 PyYAML
 matplotlib
 tqdm
+pyqtgraph
+PyQt5
