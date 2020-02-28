@@ -2,6 +2,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from collections import deque
 from tqdm import tqdm
 import pyqtgraph as pg
 pg.setConfigOptions(antialias=True)
@@ -26,8 +27,8 @@ class World:
 		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
 		self.stats = {
-			'crits': [],
-			'grains': []
+			'crits': deque(maxlen=600),
+			'grains': deque(maxlen=10000)
 		}
 
 		self.init_plane()  # Initiate the plane randomly or from file
@@ -111,20 +112,45 @@ class World:
 		c = random.randint(0, self.COLS - 1)
 		return r, c
 
+	def drive_to_stable(self, max_t=50000):
+		q = deque(maxlen=10000)
+		diff = self.persistent_diff
+		crits = 0
+		for i in range(max_t):
+			crits, added, lost, diff = self.step(diff, crits)
+			q.append(self.grains)
+			if len(q) == q.maxlen and i % 100 == 0:
+				a, b = np.polyfit(range(len(q)), q, 1)
+				print('\r{}/{}, {}'.format(i + 1, max_t, a), end='')
+				if abs(a) < 0.01:
+					break
+			elif i % 100 == 0:
+				print('\r{}/{}'.format(i + 1, max_t), end='')
+
+		print('')
+		self.persistent_diff = diff
+
 	# Runs the simulation for n timesteps and saves data
+
 	def drive(self, n, verbose=1, animate=False, graph=False):
 		if animate:
 			self.reset_animation()
+
 		pg_win = None
 		c_plot = None
 		t_plot = None
+		c_curve = None
+		t_curve = None
 		if graph:
 			pg_win = pg.GraphicsWindow()
 			c_plot = pg_win.addPlot(row=0, col=0, title='crits')
 			t_plot = pg_win.addPlot(row=1, col=0, title='total')
+			c_curve = c_plot.plot()
+			t_curve = t_plot.plot()
 
 		diff = self.persistent_diff
 		crits = 0
+
 		rng = range(n)
 		if verbose == 2:
 			rng = tqdm(rng, ncols=100)
@@ -144,8 +170,8 @@ class World:
 				elif verbose == 3:
 					print(self.draw() + '\n')
 				if graph and i % 50 == 0:
-					c_plot.plot(self.stats['crits'][-600:], clear=True)
-					t_plot.plot(self.stats['grains'][-10000:], clear=True)
+					c_curve.setData(self.stats['crits'])
+					t_curve.setData(self.stats['grains'])
 					pg.QtGui.QApplication.processEvents()
 
 		self.persistent_diff = diff

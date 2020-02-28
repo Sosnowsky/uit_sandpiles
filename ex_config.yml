@@ -1,0 +1,9 @@
+seed: 666
+columns: 128
+rows: 128
+probability: 0.001
+running: False
+input: ''
+output:
+  data: 'data/test_output.txt'
+  map: 'data/test_out_map.txt'
