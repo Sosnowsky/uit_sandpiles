@@ -121,7 +121,7 @@ class World:
 			q.append(self.grains)
 			if len(q) == q.maxlen and i % 100 == 0:
 				a, b = np.polyfit(range(len(q)), q, 1)
-				print('\r{}/{}, {}'.format(i + 1, max_t, a), end='')
+				print('\r{}/{}, {:+.5f}'.format(i + 1, max_t, a), end='')
 				if abs(a) < 0.01:
 					break
 			elif i % 100 == 0:
