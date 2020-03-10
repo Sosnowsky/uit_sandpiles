@@ -23,7 +23,7 @@ class World:
 		self.OUTPUT = config['output']['data']
 
 		self.grains = 0
-		self.plane = np.array(None)
+		self.plane = None
 		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
 		self.stats = {
@@ -136,11 +136,6 @@ class World:
 		if animate:
 			self.reset_animation()
 
-		pg_win = None
-		c_plot = None
-		t_plot = None
-		c_curve = None
-		t_curve = None
 		if graph:
 			pg_win = pg.GraphicsWindow()
 			c_plot = pg_win.addPlot(row=0, col=0, title='crits')
