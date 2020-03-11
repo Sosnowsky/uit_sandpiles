@@ -1,5 +1,6 @@
 import sys
 from colorsys import hsv_to_rgb
+from string import digits
 
 import numpy as np
 import pyqtgraph as pg
@@ -18,14 +19,14 @@ def simple_plot(window, data, *args, size=4, pen='w', log_x=False, log_y=False, 
 		plot_kwargs['pen'] = pen
 	plot = window.addPlot(**kwargs)
 	plot.setLogMode(log_x, log_y)
-	plot.plot(data, *args, **plot_kwargs)
+	return plot.plot(data, *args, **plot_kwargs)
 
 
 def line_on_plot(plot, line, pen='w'):
 	a, b = line
 	xs = plot.getAxis('bottom').range
 	ys = list(map(lambda x: a * x + b, xs))
-	plot.plot(xs, ys, pen=pen)
+	return plot.plot(xs, ys, pen=pen)
 
 
 crits = []
@@ -77,6 +78,8 @@ pdf_plot = win.addPlot(
 # rsq_plot = win.addPlot(title='rsq', row=0, col=2)
 # d2_rsq_plot = win.addPlot(title='d2_rsq', row=1, col=2)
 
+lines = []
+scatters = []
 
 crit_plot.plot(crits)
 for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations, areas):
@@ -94,11 +97,9 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 			del bins[i]
 	dpdf = np.log10(dpdf)
 	bins = np.log10(bins)
-	pdf_plot.plot(bins, dpdf, symbolSize=4, symbol='o',
-               symbolPen=None, symbolBrush=color + (160,), pen=None)
+	scatters.append(pdf_plot.plot(bins, dpdf, symbolSize=4, symbol='o',
+                               symbolPen=None, symbolBrush=color + (160,), pen=None))
 
-	d_squares = []
-	d2_squares = []
 	for i in range(len(dpdf) - 2):
 		linreg, square = np.polyfit(bins[i:], dpdf[i:], 1, full=True)[:2]
 		if i > 0:
@@ -111,6 +112,32 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 				p_d2_square = d2_square
 			p_d_square = d_square
 		p_square = square[0]
-	line_on_plot(pdf_plot, linreg, pen=color)
+	lines.append(line_on_plot(pdf_plot, linreg, pen=color))
+	# pdf_plot.plot((bins[idx0], bins[idx0]), (-1, -7), pen=color)
 
-pg_app.exec_()
+while 1:
+	text = input()
+	try:
+		if text == 'q':
+			break
+		elif text == 'a':
+			for s, l in zip(scatters, lines):
+				s.show()
+				l.show()
+		elif text[0] == 's':
+			for i in text.split(',')[1:]:
+				lines[int(i)].show()
+				scatters[int(i)].show()
+		elif text[0] == 'h':
+			for i in text.split(',')[1:]:
+				lines[int(i)].hide()
+				scatters[int(i)].hide()
+		elif text[0] in digits:
+			for s, l in zip(scatters, lines):
+				s.hide()
+				l.hide()
+			for i in text.split(','):
+				scatters[int(i)].show()
+				lines[int(i)].show()
+	except:
+		print('error')
