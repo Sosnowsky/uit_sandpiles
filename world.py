@@ -1,10 +1,12 @@
 import random
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from collections import deque
-from tqdm import tqdm
+
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
 import pyqtgraph as pg
+from tqdm import tqdm
+
 pg.setConfigOptions(antialias=True)
 
 
@@ -24,20 +26,22 @@ class World:
 
 		self.grains = 0
 		self.plane = None
+		# Array to keep track of topples between function calls
 		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
-		self.stats = {
-			'crits': deque(maxlen=600),
-			'grains': deque(maxlen=10000)
-		}
+		if graph:
+			self.stats = {
+				'crits': deque(maxlen=600),
+				'grains': deque(maxlen=10000)
+			}
 
-		self.init_plane()  # Initiate the plane randomly or from file
+		self.init_plane()  # Initiate the plane (randomly or from file)
 
-		# Write header to data file
+		# Write header to data file (unless we're reading an input map)
 		if self.INPUT == '':
 			with open(self.OUTPUT, 'a+') as data_file:
 				data_file.write(
-					'========================================================\n')
+					'{} rows, {} cols, p={}, running={}\n'.format(self.ROWS, self.COLS, self.PROB, self.RUNNING))
 				data_file.write(
 					'critical cells; added grains; lost grains; total grains;\n')
 				data_file.write(
@@ -53,7 +57,7 @@ class World:
 				for y, line in enumerate(file.readlines()):
 					self.plane[y] = np.array(list(map(int, line.rstrip(';\n\r ').split(';'))))
 
-			ph, ph_, ph__, self.persistent_diff = self.step(None, 1)
+			self.persistent_diff = self.step(None, 1)[3]
 		# Calculate the number of grains
 		self.grains = sum(self.plane.flatten()) + sum(self.persistent_diff.flatten())
 
@@ -62,9 +66,11 @@ class World:
 
 		lost = 0
 		added = 0
+		# Create empty array to keep track of topples
 		diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+		# If nothing is critical or the sandpile is defined to be running, place new grains
 		if p_crits == 0 or self.RUNNING:
-			added = np.random.binomial(self.ROWS * self.COLS, self.PROB)
+			added = grains_to_add()
 			for i in range(added):
 				r_, c_ = self.rand_pos()
 				p_diff[r_][c_] += 1
@@ -102,24 +108,31 @@ class World:
 		return crits, added, lost, diff
 
 	def bound(self, r, c):
-		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain as tuple
+		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain as tuple (r, c)
 		return None
-		# /BOUNDARY CONDITION
 
-	# Returns random position to place new grain on
+	# Returns random position to place new grain on (r, c)
 	def rand_pos(self):
 		r = random.randint(0, self.ROWS - 1)
 		c = random.randint(0, self.COLS - 1)
 		return r, c
 
-	def drive_to_stable(self, max_t=50000):
+	# Returns number of grains to add
+	def grains_to_add(self):
+		return np.random.binomial(self.ROWS * self.COLS, self.PROB)
+
+	# Function to drive sandpile to SOC (where the graph oh the number of crits flattens out)
+	def drive_to_stable(self, max_t=10000000):
 		q = deque(maxlen=10000)
 		diff = self.persistent_diff
 		crits = 0
+		# Run model for max_t timesteps or until graph flattens out
 		for i in range(max_t):
 			crits, added, lost, diff = self.step(diff, crits)
 			q.append(self.grains)
+			# Every 100 timesteps where the queue is full
 			if len(q) == q.maxlen and i % 100 == 0:
+				# Break if the gradient of the regression line is less than a given value
 				a, b = np.polyfit(range(len(q)), q, 1)
 				print('\r{}/{}, {:+.5f}'.format(i + 1, max_t, a), end='')
 				if abs(a) < 0.01:
@@ -131,11 +144,10 @@ class World:
 		self.persistent_diff = diff
 
 	# Runs the simulation for n timesteps and saves data
-
 	def drive(self, n, verbose=1, animate=False, graph=False):
 		if animate:
 			self.reset_animation()
-
+		# Create graphs
 		if graph:
 			pg_win = pg.GraphicsWindow()
 			c_plot = pg_win.addPlot(row=0, col=0, title='crits')
@@ -147,27 +159,34 @@ class World:
 		crits = 0
 
 		rng = range(n)
+		# Create loading bar
 		if verbose == 2:
-			rng = tqdm(rng, ncols=100)
+			rng = tqdm(rng)
 
 		with open(self.OUTPUT, 'a+') as data_file:
 			for i in rng:
+				# Run one timestep and save data
 				crits, added, lost, diff = self.step(diff, crits)
 				data_file.write('{};{};{};{};\n'.format(crits, added, lost, self.grains))
-				self.stats['crits'].append(crits)
-				self.stats['grains'].append(self.grains)
+
 				if animate:
 					self.add_frame()
+
+				# Print progress and optionally map
 				if verbose == 1:
 					print('\r{}/{}'.format(i + 1, n), end='')
 					if i == n - 1:
 						print('')
 				elif verbose == 3:
 					print(self.draw() + '\n')
-				if graph and i % 50 == 0:
-					c_curve.setData(self.stats['crits'])
-					t_curve.setData(self.stats['grains'])
-					pg.QtGui.QApplication.processEvents()
+
+				if graph:
+					self.stats['crits'].append(crits)
+					self.stats['grains'].append(self.grains)
+					if i % 50 == 0:
+						c_curve.setData(self.stats['crits'])
+						t_curve.setData(self.stats['grains'])
+						pg.QtGui.QApplication.processEvents()
 
 		self.persistent_diff = diff
 
