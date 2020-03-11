@@ -1,4 +1,4 @@
-# Sandpiles
+# Sandpiles - THIS README IS RARELY UP TO DATE
 
 ## Config file, inputs and outputs
 The config file follows yaml syntax and should include the following:
