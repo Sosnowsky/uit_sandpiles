@@ -29,11 +29,10 @@ class World:
 		# Array to keep track of topples between function calls
 		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
-		if graph:
-			self.stats = {
-				'crits': deque(maxlen=600),
-				'grains': deque(maxlen=10000)
-			}
+		self.stats = {
+			'crits': deque(maxlen=600),
+			'grains': deque(maxlen=10000)
+		}
 
 		self.init_plane()  # Initiate the plane (randomly or from file)
 
@@ -70,7 +69,7 @@ class World:
 		diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		if p_crits == 0 or self.RUNNING:
-			added = grains_to_add()
+			added = self.grains_to_add()
 			for i in range(added):
 				r_, c_ = self.rand_pos()
 				p_diff[r_][c_] += 1
