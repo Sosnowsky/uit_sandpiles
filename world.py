@@ -41,7 +41,7 @@ class World:
 		if self.INPUT == '':
 			with open(self.OUTPUT, 'a+') as data_file:
 				data_file.write(
-					'{} rows, {} cols, p={}, running={}\n'.format(self.ROWS, self.COLS, self.PROB, self.RUNNING))
+					'{} rows, {} cols, p={}, running={}, seed={}\n'.format(self.ROWS, self.COLS, self.PROB, self.RUNNING, config['seed']))
 				data_file.write(
 					'critical cells; added grains; lost grains; total grains;\n')
 				data_file.write(
