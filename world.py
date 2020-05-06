@@ -23,11 +23,20 @@ class World:
 		self.RUNNING = config['running']
 		self.SAVE = config['output']['map']
 		self.OUTPUT = config['output']['data']
+		self.ZHANG = config['zhang']
+		self.Z_EPSILON = config['z_epsilon']
+
+		if self.ZHANG:
+			self.DTYPE = float
+			self.C_THRESH = config['z_threshold']
+		else:
+			self.DTYPE = int
+			self.C_THRESH = 4
 
 		self.grains = 0
 		self.plane = None
 		# Array to keep track of topples between function calls
-		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=self.DTYPE)
 
 		self.stats = {
 			'crits': deque(maxlen=600),
@@ -48,13 +57,17 @@ class World:
 
 	def init_plane(self):
 		if self.INPUT == '':  # initiate plane randomly
-			self.plane = np.fromfunction(np.vectorize(lambda r, c: random.randint(
-                            0, 3)), (self.ROWS, self.COLS), dtype=int)
+			if self.ZHANG:
+				rng = np.vectorize(lambda r, c: random.random() * (self.Z_THRESH - 0.5))
+			else:
+				rng = np.vectorize(lambda r, c: random.randint(0, 3))
+			self.plane = np.fromfunction(rng, (self.ROWS, self.COLS), dtype=self.DTYPE)
 		else:  # Initiate plane from file
-			self.plane = np.empty((self.ROWS, self.COLS), dtype=int)
+			self.plane = np.empty((self.ROWS, self.COLS), dtype=self.DTYPE)
 			with open(self.INPUT, 'r') as file:
 				for y, line in enumerate(file.readlines()):
-					self.plane[y] = np.array(list(map(int, line.rstrip(';\n\r ').split(';'))))
+					self.plane[y] = np.array(
+						list(map(self.DTYPE, line.rstrip(';\n\r ').split(';'))))
 
 			self.persistent_diff = self.step(None, 1)[3]
 		# Calculate the number of grains
@@ -66,7 +79,7 @@ class World:
 		lost = 0
 		added = 0
 		# Create empty array to keep track of topples
-		diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+		diff = np.zeros((self.ROWS, self.COLS), dtype=self.DTYPE)
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		if p_crits == 0 or self.RUNNING:
 			added = self.grains_to_add()
@@ -77,17 +90,17 @@ class World:
 		self.grains += added
 
 		# Function to place grain on adjacent cells
-		def put(r, c):
+		def put(r, c, to_add):
 			nonlocal lost
 			try:
-				diff[r][c] += 1
+				diff[r][c] += to_add
 			except IndexError:
 				coords = self.bound(r, c)
 				if coords:
-					diff[coords[0]][coords[1]] += 1
+					diff[coords[0]][coords[1]] += to_add
 				else:
-					lost += 1
-					self.grains -= 1
+					lost += to_add
+					self.grains -= to_add
 
 		for r in range(self.ROWS):
 			for c in range(self.COLS):
@@ -96,13 +109,21 @@ class World:
 						continue
 
 					self.plane[r][c] += p_diff[r][c]
-				if self.plane[r][c] >= 4:
+				if self.plane[r][c] >= self.C_THRESH:
 					crits += 1
-					diff[r][c] -= 4
-					put(r - 1, c)
-					put(r + 1, c)
-					put(r, c - 1)
-					put(r, c + 1)
+					if self.ZHANG:
+						diff[r][c] -= (1 - self.Z_EPSILON) * self.plane[r][c]
+					else:
+						diff[r][c] -= 4
+
+					if self.ZHANG:
+						to_add = (1 - self.Z_EPSILON) * self.plane[r][c] / 4
+					else:
+						to_add = 1
+					put(r - 1, c, to_add)
+					put(r + 1, c, to_add)
+					put(r, c - 1, to_add)
+					put(r, c + 1, to_add)
 
 		return crits, added, lost, diff
 
@@ -122,7 +143,7 @@ class World:
 
 	# Function to drive sandpile to SOC (where the graph oh the number of crits flattens out)
 	def drive_to_stable(self, max_t=10000000):
-		q = deque(maxlen=10000)
+		q = deque(maxlen=20000)
 		diff = self.persistent_diff
 		crits = 0
 		# Run model for max_t timesteps or until graph flattens out

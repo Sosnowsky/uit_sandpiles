@@ -125,19 +125,21 @@ while 1:
 				s.show()
 				l.show()
 		elif text[0] == 's':
-			for i in text.split(',')[1:]:
+			for i in text.split(' ')[1:]:
 				lines[int(i)].show()
 				scatters[int(i)].show()
 		elif text[0] == 'h':
-			for i in text.split(',')[1:]:
+			for i in text.split(' ')[1:]:
 				lines[int(i)].hide()
 				scatters[int(i)].hide()
 		elif text[0] in digits:
 			for s, l in zip(scatters, lines):
 				s.hide()
 				l.hide()
-			for i in text.split(','):
+			for i in text.split(' '):
 				scatters[int(i)].show()
 				lines[int(i)].show()
+	except KeyboardInterrupt:
+		break
 	except:
 		print('error')
