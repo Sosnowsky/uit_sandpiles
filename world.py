@@ -142,7 +142,7 @@ class World:
 		return np.random.binomial(self.ROWS * self.COLS, self.PROB)
 
 	# Function to drive sandpile to SOC (where the graph oh the number of crits flattens out)
-	def drive_to_stable(self, max_t=10000000):
+	def drive_to_stable(self, max_t=1000000000):
 		q = deque(maxlen=20000)
 		diff = self.persistent_diff
 		crits = 0
@@ -154,17 +154,17 @@ class World:
 			if len(q) == q.maxlen and i % 100 == 0:
 				# Break if the gradient of the regression line is less than a given value
 				a, b = np.polyfit(range(len(q)), q, 1)
-				print('\r{}/{}, {:+.5f}'.format(i + 1, max_t, a), end='')
+				print('\rStep {}, {:+.5f}'.format(i + 1, a), end='')
 				if abs(a) < 0.01:
 					break
 			elif i % 100 == 0:
-				print('\r{}/{}'.format(i + 1, max_t), end='')
+				print('\r{}'.format(i + 1), end='')
 
 		print('')
 		self.persistent_diff = diff
 
 	# Runs the simulation for n timesteps and saves data
-	def drive(self, n, verbose=1, animate=False, graph=False):
+	def drive(self, n, verbose=2, animate=False, graph=False):
 		if animate:
 			self.reset_animation()
 		# Create graphs
