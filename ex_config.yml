@@ -1,9 +1,12 @@
 seed: 666
-columns: 128
-rows: 128
+columns: 64
+rows: 64
 probability: 0.001
 running: False
-input: ''
+input: 'testm.txt'
+zhang: False
+z_threshold: 4
+z_epsilon: 0.5
 output:
-  data: 'data/test_output.txt'
-  map: 'data/test_out_map.txt'
+  data: 'test.txt'
+  map: 'testm.txt'
