@@ -7,7 +7,7 @@ import numpy as np
 import pyqtgraph as pg
 from tqdm import tqdm
 
-pg.setConfigOptions(antialias=True)
+pg.setConfigOptions(antialias=False)
 
 
 class World:
