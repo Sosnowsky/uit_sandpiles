@@ -3,14 +3,14 @@ from world import World
 from subprocess import call
 import signal
 
-local_backup = 'backups/'
-network_backup = 'uit_databank@blablabla.duckdns.org:~/backups/'
+local_backup = 'backups'
+network_backup = 'rasmus@bringebaerpai.duckdns.org:~/backups'
 
 config = dict()
 with open('config.yml', 'r') as cfg:
 	config = safe_load(cfg)
 
-call(['cp', 'config.yml', local_backup])
+call(['cp', 'config.yml', local_backup + '/'])
 
 world = World(config)
 
@@ -42,9 +42,10 @@ while True:
 			break
 
 	print('Creating backup')
-	call(['cp', config['output']['data'], '{}d{}.txt'.format(local_backup, c % 10)])
-	call(['cp', config['output']['map'], '{}m{}.txt'.format(local_backup, c % 10)])
-	#call(['scp', '-P', '2200', '{}*{}'.format(local_backup, c % 10), network_backup])
+	call(['cp', config['output']['data'], '{}/{}.d'.format(local_backup, c % 10)])
+	call(['cp', config['output']['map'], '{}/{}.m'.format(local_backup, c % 10)])
+	call('scp -P 2200 {}/{}.* {}/'.format(local_backup, c %
+                                       10, network_backup), shell=True)
 	if flag.flag:
 		break
 
