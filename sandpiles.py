@@ -11,6 +11,7 @@ with open('config.yml', 'r') as cfg:
 	config = safe_load(cfg)
 
 call(['cp', 'config.yml', local_backup + '/'])
+call(['scp', '-P', '2200', 'config.yml', network_backup + '/'])
 
 world = World(config)
 
