@@ -11,24 +11,23 @@ pg.setConfigOptions(antialias=False)
 
 
 class World:
-
 	def __init__(self, config):
-		random.seed(config['seed'])
-		np.random.seed(config['seed'])
+		random.seed(config["seed"])
+		np.random.seed(config["seed"])
 
-		self.COLS = config['columns']
-		self.ROWS = config['rows']
-		self.INPUT = config['input']
-		self.PROB = config['probability']
-		self.RUNNING = config['running']
-		self.SAVE = config['output']['map']
-		self.OUTPUT = config['output']['data']
-		self.ZHANG = config['zhang']
-		self.Z_EPSILON = config['z_epsilon']
+		self.COLS = config["columns"]
+		self.ROWS = config["rows"]
+		self.INPUT = config["input"]
+		self.PROB = config["probability"]
+		self.RUNNING = config["running"]
+		self.SAVE = config["output"]["map"]
+		self.OUTPUT = config["output"]["data"]
+		self.ZHANG = config["zhang"]
+		self.Z_EPSILON = config["z_epsilon"]
 
 		if self.ZHANG:
 			self.DTYPE = float
-			self.C_THRESH = config['z_threshold']
+			self.C_THRESH = config["z_threshold"]
 		else:
 			self.DTYPE = int
 			self.C_THRESH = 4
@@ -38,25 +37,23 @@ class World:
 		# Array to keep track of topples between function calls
 		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=self.DTYPE)
 
-		self.stats = {
-			'crits': deque(maxlen=600),
-			'grains': deque(maxlen=10000)
-		}
+		self.stats = {"crits": deque(maxlen=600), "grains": deque(maxlen=10000)}
 
 		self.init_plane()  # Initiate the plane (randomly or from file)
 
 		# Write header to data file (unless we're reading an input map)
-		if self.INPUT == '':
-			with open(self.OUTPUT, 'a+') as data_file:
+		if self.INPUT == "":
+			with open(self.OUTPUT, "a+") as data_file:
 				data_file.write(
-					'{} rows, {} cols, p={}, running={}, seed={}\n'.format(self.ROWS, self.COLS, self.PROB, self.RUNNING, config['seed']))
-				data_file.write(
-					'critical cells; added grains; lost grains; total grains;\n')
-				data_file.write(
-					'========================================================\n')
+					"{} rows, {} cols, p={}, running={}, seed={}\n".format(
+						self.ROWS, self.COLS, self.PROB, self.RUNNING, config["seed"]
+					)
+				)
+				data_file.write("critical cells; added grains; lost grains; total grains;\n")
+				data_file.write("========================================================\n")
 
 	def init_plane(self):
-		if self.INPUT == '':  # initiate plane randomly
+		if self.INPUT == "":  # initiate plane randomly
 			if self.ZHANG:
 				rng = np.vectorize(lambda r, c: random.random() * (self.Z_THRESH - 0.5))
 			else:
@@ -64,10 +61,9 @@ class World:
 			self.plane = np.fromfunction(rng, (self.ROWS, self.COLS), dtype=self.DTYPE)
 		else:  # Initiate plane from file
 			self.plane = np.empty((self.ROWS, self.COLS), dtype=self.DTYPE)
-			with open(self.INPUT, 'r') as file:
+			with open(self.INPUT, "r") as file:
 				for y, line in enumerate(file.readlines()):
-					self.plane[y] = np.array(
-						list(map(self.DTYPE, line.rstrip(';\n\r ').split(';'))))
+					self.plane[y] = np.array(list(map(self.DTYPE, line.rstrip(";\n\r ").split(";"))))
 
 			self.persistent_diff = self.step(None, 1)[3]
 		# Calculate the number of grains
@@ -154,13 +150,13 @@ class World:
 			if len(q) == q.maxlen and i % 100 == 0:
 				# Break if the gradient of the regression line is less than a given value
 				a, b = np.polyfit(range(len(q)), q, 1)
-				print('\rStep {}, {:+.5f}'.format(i + 1, a), end='')
+				print("\rStep {}, {:+.5f}".format(i + 1, a), end="")
 				if abs(a) < 0.01:
 					break
 			elif i % 100 == 0:
-				print('\r{}'.format(i + 1), end='')
+				print("\r{}".format(i + 1), end="")
 
-		print('')
+		print("")
 		self.persistent_diff = diff
 
 	# Runs the simulation for n timesteps and saves data
@@ -170,8 +166,8 @@ class World:
 		# Create graphs
 		if graph:
 			pg_win = pg.GraphicsWindow()
-			c_plot = pg_win.addPlot(row=0, col=0, title='crits')
-			t_plot = pg_win.addPlot(row=1, col=0, title='total')
+			c_plot = pg_win.addPlot(row=0, col=0, title="crits")
+			t_plot = pg_win.addPlot(row=1, col=0, title="total")
 			c_curve = c_plot.plot()
 			t_curve = t_plot.plot()
 
@@ -183,35 +179,35 @@ class World:
 		if verbose == 2:
 			rng = tqdm(rng)
 
-		with open(self.OUTPUT, 'a+') as data_file:
+		with open(self.OUTPUT, "a+") as data_file:
 			for i in rng:
 				# Run one timestep and save data
 				crits, added, lost, diff = self.step(diff, crits)
-				data_file.write('{};{};{};{};\n'.format(crits, added, lost, self.grains))
+				data_file.write("{};{};{};{};\n".format(crits, added, lost, self.grains))
 
 				if animate:
 					self.add_frame()
 
 				# Print progress and optionally map
 				if verbose == 1:
-					print('\r{}/{}'.format(i + 1, n), end='')
+					print("\r{}/{}".format(i + 1, n), end="")
 					if i == n - 1:
-						print('')
+						print("")
 				elif verbose == 3:
-					print(self.draw() + '\n')
+					print(self.draw() + "\n")
 
 				if graph:
-					self.stats['crits'].append(crits)
-					self.stats['grains'].append(self.grains)
+					self.stats["crits"].append(crits)
+					self.stats["grains"].append(self.grains)
 					if i % 50 == 0:
-						c_curve.setData(self.stats['crits'])
-						t_curve.setData(self.stats['grains'])
+						c_curve.setData(self.stats["crits"])
+						t_curve.setData(self.stats["grains"])
 						pg.QtGui.QApplication.processEvents()
 
 		self.persistent_diff = diff
 
-		if self.SAVE != '':
-			with open(self.SAVE, 'w+') as save_file:
+		if self.SAVE != "":
+			with open(self.SAVE, "w+") as save_file:
 				save_file.write(self.draw())
 		if animate:
 			self.show_animation()
@@ -220,11 +216,11 @@ class World:
 
 	# Returns a map of the world plane
 	def draw(self):
-		s = ''
+		s = ""
 		for r in self.plane:
 			for cell in r:
-				s += '{};'.format(cell)
-			s += '\n'
+				s += "{};".format(cell)
+			s += "\n"
 
 		return s
 
@@ -233,18 +229,34 @@ class World:
 		self.canvas = plt.figure()
 
 	def show_animation(self):
-		self.im = plt.imshow(
-                    self.frames[0], animated=True, cmap='jet', vmax=5, vmin=0)
+		self.im = plt.imshow(self.frames[0], animated=True, cmap="jet", vmax=5, vmin=0)
 
-		ani = animation.FuncAnimation(self.canvas, self.get_frame, frames=range(
-                    len(self.frames)), interval=10, blit=True, repeat=True, repeat_delay=1000)
+		ani = animation.FuncAnimation(
+			self.canvas,
+			self.get_frame,
+			frames=range(len(self.frames)),
+			interval=10,
+			blit=True,
+			repeat=True,
+			repeat_delay=1000,
+		)
 		# ani.save('data/out_ani.mp4', bitrate=30000)   # uncomment this to save animation
 		plt.show()
 		self.reset_animation()
 
 	def get_frame(self, i):
 		self.im.set_array(self.frames[i])
-		return self.im,
+		return (self.im,)
 
 	def add_frame(self):
 		self.frames.append(np.copy(self.plane))
+
+
+if __name__ == "__main__":
+	from yaml import safe_load
+
+	config = dict()
+	with open("config.yml", "r") as cfg:
+		config = safe_load(cfg)
+	world = World(config)
+	world.drive(1000, 2, 1, 1)
