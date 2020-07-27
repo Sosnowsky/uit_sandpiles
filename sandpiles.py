@@ -3,6 +3,9 @@ from world import World
 from subprocess import call
 import signal
 
+reps = 500
+sets = 200
+
 local_backup = "backups"
 network_backup = "rasmus@bringebaerpai.duckdns.org:~/backups"
 
@@ -37,9 +40,9 @@ class Flag:
 c = 0
 flag = Flag()
 while True:
-	for i in range(90):
-		world.drive(500, verbose=2, animate=False, graph=False)
-		print(str(i+1) + '/90')
+	for i in range(sets):
+		world.drive(reps, verbose=2, animate=False, graph=False)
+		print(str(i + 1) + f"/{sets}")
 		if flag.flag:
 			print("Exiting")
 			break
