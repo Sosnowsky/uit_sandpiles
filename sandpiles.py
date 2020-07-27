@@ -9,7 +9,6 @@ sets = 200
 local_backup = "backups"
 network_backup = "rasmus@bringebaerpai.duckdns.org:~/backups"
 
-config = dict()
 with open("config.yml", "r") as cfg:
 	config = safe_load(cfg)
 
