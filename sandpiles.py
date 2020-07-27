@@ -35,8 +35,9 @@ class Flag:
 c = 0
 flag = Flag()
 while True:
-	for i in range(100):
-		world.drive(100, verbose=2, animate=False, graph=False)
+	for i in range(90):
+		world.drive(500, verbose=2, animate=False, graph=False)
+		print(str(i+1) + '/90')
 		if flag.flag:
 			print('Exiting')
 			break
