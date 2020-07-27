@@ -1,8 +1,6 @@
 import random
 from collections import deque
 
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
 import numpy as np
 import pyqtgraph as pg
 from tqdm import tqdm
@@ -42,8 +40,8 @@ class World:
 		self.init_plane()  # Initiate the plane (randomly or from file)
 
 		# Write header to data file (unless we're reading an input map)
-		if self.INPUT == "":
-			with open(self.OUTPUT, "a+") as data_file:
+		with open(self.OUTPUT, "a+") as data_file:
+			if data_file.readline() == "":
 				data_file.write(
 					"{} rows, {} cols, p={}, running={}, seed={}\n".format(
 						self.ROWS, self.COLS, self.PROB, self.RUNNING, config["seed"]
@@ -161,16 +159,20 @@ class World:
 
 	# Runs the simulation for n timesteps and saves data
 	def drive(self, n, verbose=2, animate=False, graph=False):
-		if animate:
-			self.reset_animation()
 		# Create graphs
-		if graph:
+		if graph or animate:
 			pg_win = pg.GraphicsWindow()
+			pg_win.showMaximized()
+		if graph:
 			c_plot = pg_win.addPlot(row=0, col=0, title="crits")
 			t_plot = pg_win.addPlot(row=1, col=0, title="total")
 			c_curve = c_plot.plot()
 			t_curve = t_plot.plot()
-
+		if animate:
+			canvas = pg_win.addPlot(row=0, col=1, rowspan=2, colspan=2, title="map")
+			canvas.setAspectLocked()
+			im_item = pg.ImageItem()
+			canvas.addItem(im_item)
 		diff = self.persistent_diff
 		crits = 0
 
@@ -185,9 +187,6 @@ class World:
 				crits, added, lost, diff = self.step(diff, crits)
 				data_file.write("{};{};{};{};\n".format(crits, added, lost, self.grains))
 
-				if animate:
-					self.add_frame()
-
 				# Print progress and optionally map
 				if verbose == 1:
 					print("\r{}/{}".format(i + 1, n), end="")
@@ -199,18 +198,21 @@ class World:
 				if graph:
 					self.stats["crits"].append(crits)
 					self.stats["grains"].append(self.grains)
-					if i % 50 == 0:
+					if i % 50 == 0 or animate:
 						c_curve.setData(self.stats["crits"])
 						t_curve.setData(self.stats["grains"])
-						pg.QtGui.QApplication.processEvents()
+						if not animate:
+							pg.QtGui.QApplication.processEvents()
+
+				if animate:
+					im_item.setImage(self.plane, autoLevels=False, levels=(0, 4))
+					pg.QtGui.QApplication.processEvents()
 
 		self.persistent_diff = diff
 
 		if self.SAVE != "":
 			with open(self.SAVE, "w+") as save_file:
 				save_file.write(self.draw())
-		if animate:
-			self.show_animation()
 		if graph:
 			pg_win.close()
 
@@ -224,33 +226,6 @@ class World:
 
 		return s
 
-	def reset_animation(self):
-		self.frames = []
-		self.canvas = plt.figure()
-
-	def show_animation(self):
-		self.im = plt.imshow(self.frames[0], animated=True, cmap="jet", vmax=5, vmin=0)
-
-		ani = animation.FuncAnimation(
-			self.canvas,
-			self.get_frame,
-			frames=range(len(self.frames)),
-			interval=10,
-			blit=True,
-			repeat=True,
-			repeat_delay=1000,
-		)
-		# ani.save('data/out_ani.mp4', bitrate=30000)   # uncomment this to save animation
-		plt.show()
-		self.reset_animation()
-
-	def get_frame(self, i):
-		self.im.set_array(self.frames[i])
-		return (self.im,)
-
-	def add_frame(self):
-		self.frames.append(np.copy(self.plane))
-
 
 if __name__ == "__main__":
 	from yaml import safe_load
@@ -259,4 +234,4 @@ if __name__ == "__main__":
 	with open("config.yml", "r") as cfg:
 		config = safe_load(cfg)
 	world = World(config)
-	world.drive(1000, 2, 1, 1)
+	world.drive(10000, 2, 1, 1)
