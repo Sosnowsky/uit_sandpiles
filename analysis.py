@@ -7,7 +7,9 @@ areas = [[] for i in thresholds]
 dur = [0] * len(thresholds)
 area = [0] * len(thresholds)
 
-with open("./data/9.d", "r") as raw, open("./analysed.txt", "w") as out:
+with open("./data/p0.0001_256/data.txt", "r") as raw, open(
+	"./data/p0.0001_256/analysed.txt", "w"
+) as out:
 	for line in tqdm(raw.readlines()[3:]):
 		strs = line.rstrip(";\n\r ").split(";")
 		crit = int(strs[0])
