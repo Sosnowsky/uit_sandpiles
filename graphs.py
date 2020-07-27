@@ -1,29 +1,11 @@
-import sys
 from colorsys import hsv_to_rgb
 from string import digits
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtGui
 from tqdm import tqdm
 
 thresholds = [0, 3.3, 6.6, 13.2, 26.3, 52.6, 104.9]
-
-
-def simple_plot(
-	window, data, *args, size=4, pen="w", log_x=False, log_y=False, **kwargs
-):
-	plot_kwargs = {"symbolSize": size}
-	if len(args) > 0:
-		plot_kwargs["pen"] = None
-		plot_kwargs["symbolPen"] = None
-		plot_kwargs["symbolBrush"] = pen
-		plot_kwargs["symbol"] = "o"
-	else:
-		plot_kwargs["pen"] = pen
-	plot = window.addPlot(**kwargs)
-	plot.setLogMode(log_x, log_y)
-	return plot.plot(data, *args, **plot_kwargs)
 
 
 def line_on_plot(plot, line, pen="w"):
@@ -41,7 +23,7 @@ colors = [
 durations = [[] for i in thresholds]
 areas = [[] for i in thresholds]
 
-with open("./data/analysed.txt", "r") as file:
+with open("./data/p0.0001_256/analysed.txt", "r") as file:
 	for line in tqdm(file.readlines()[3:]):
 		sp1 = line.rstrip("\n").split(":")
 		sp2 = sp1[1].split(",")
@@ -50,15 +32,10 @@ with open("./data/analysed.txt", "r") as file:
 		areas[idx].append(int(sp2[1]))
 
 
-pg_app = QtGui.QApplication(sys.argv)
 win = pg.GraphicsWindow()
 
 ca_plot = win.addPlot(title="thresholded durations v area", row=0, col=0)
-# ca_plot.setLogMode(True, True)
 pdf_plot = win.addPlot(title="thresholded pdf for durations", row=0, col=1)
-# pdf_plot.setLogMode(True, True)
-# rsq_plot = win.addPlot(title='rsq', row=0, col=2)
-# d2_rsq_plot = win.addPlot(title='d2_rsq', row=1, col=2)
 
 lines = []
 scatters = []
@@ -74,19 +51,16 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 		pen=None,
 	)
 	dpdf, edges = np.histogram(duration, bins=50, density=True)
-	bins = [(edges[i] + edges[i + 1]) / 2 for i in range(len(edges) - 1)]
-	dpdf = list(dpdf)
-	bins = list(bins)
-	for i in reversed(range(len(dpdf))):
-		if dpdf[i] == 0:
-			del dpdf[i]
-			del bins[i]
-	dpdf = np.log10(dpdf)
-	bins = np.log10(bins)
+	bins = np.array([(edges[i] + edges[i + 1]) / 2 for i in range(len(edges) - 1)])
+	dpdf_filter = dpdf != 0
+	dpdf = dpdf[dpdf_filter]
+	bins = bins[dpdf_filter]
+	log_dpdf = np.log10(dpdf)
+	log_bins = np.log10(bins)
 	scatters.append(
 		pdf_plot.plot(
-			bins,
-			dpdf,
+			log_bins,
+			log_dpdf,
 			symbolSize=4,
 			symbol="o",
 			symbolPen=None,
@@ -95,13 +69,13 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 		)
 	)
 
-	for i in range(len(dpdf) - 2):
-		linreg, square = np.polyfit(bins[i:], dpdf[i:], 1, full=True)[:2]
+	for i in range(len(log_dpdf) - 2):
+		linreg, square = np.polyfit(log_bins[i:], log_dpdf[i:], 1, full=True)[:2]
 		if i > 0:
-			d_square = (square[0] - p_square) / (bins[i] - bins[i - 1])
+			d_square = (square[0] - p_square) / (log_bins[i] - log_bins[i - 1])
 			if i > 1:
-				d2_square = (d_square - p_d_square) / (bins[i] - bins[i - 1])
-				if i > 2 and (d2_square - p_d2_square) / (bins[i] - bins[i - 1]) >= 500:
+				d2_square = (d_square - p_d_square) / (log_bins[i] - log_bins[i - 1])
+				if i > 2 and (d2_square - p_d2_square) / (log_bins[i] - log_bins[i - 1]) >= 500:
 					idx0 = i
 					break
 				p_d2_square = d2_square
@@ -109,7 +83,6 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 		p_square = square[0]
 	lines.append(line_on_plot(pdf_plot, linreg, pen=color))
 	print(linreg)
-	# pdf_plot.plot((bins[idx0], bins[idx0]), (-1, -7), pen=color)
 
 while 1:
 	text = input()
