@@ -108,6 +108,7 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 			p_d_square = d_square
 		p_square = square[0]
 	lines.append(line_on_plot(pdf_plot, linreg, pen=color))
+	print(linreg)
 	# pdf_plot.plot((bins[idx0], bins[idx0]), (-1, -7), pen=color)
 
 while 1:
