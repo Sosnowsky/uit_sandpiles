@@ -21,105 +21,163 @@ class World:
 		self.SAVE = config["output"]["map"]
 		self.OUTPUT = config["output"]["data"]
 		self.ZHANG = config["zhang"]
+		self.Z_THRESH = config["z_threshold"]
 		self.Z_EPSILON = config["z_epsilon"]
 
-		if self.ZHANG:
-			self.DTYPE = float
-			self.C_THRESH = config["z_threshold"]
-		else:
-			self.DTYPE = int
-			self.C_THRESH = 4
-
-		self.grains = 0
-		self.plane = None
 		# Array to keep track of topples between function calls
-		self.persistent_diff = np.zeros((self.ROWS, self.COLS), dtype=self.DTYPE)
 
-		self.stats = {"crits": deque(maxlen=600), "grains": deque(maxlen=10000)}
+		self.crits_stat = deque(maxlen=600)
+		self.grains_stat = deque(maxlen=10000)
 
-		self.init_plane()  # Initiate the plane (randomly or from file)
+		(
+			self.plane,
+			self.diff,
+		) = self.init_plane()  # Initiate the plane (randomly or from file)
+		self.grains = sum(self.plane.flatten()) + sum(self.diff.flatten())
 
 		# Write header to data file (unless we're reading an input map)
 		with open(self.OUTPUT, "a+") as data_file:
 			if data_file.readline() == "":
 				data_file.write(
-					"{} rows, {} cols, p={}, running={}, seed={}\n".format(
-						self.ROWS, self.COLS, self.PROB, self.RUNNING, config["seed"]
-					)
+					f"{self.ROWS} rows, {self.COLS} cols, p={self.PROB}, running={self.RUNNING}, "
+					f"seed={config['seed']}{', zhang' if self.ZHANG else ''}\n"
 				)
 				data_file.write("critical cells; added grains; lost grains; total grains;\n")
 				data_file.write("========================================================\n")
 
 	def init_plane(self):
+		dtype = float if self.ZHANG else int
 		if self.INPUT == "":  # initiate plane randomly
 			if self.ZHANG:
-				rng = np.vectorize(lambda r, c: random.random() * (self.Z_THRESH - 0.5))
-			else:
-				rng = np.vectorize(lambda r, c: random.randint(0, 3))
-			self.plane = np.fromfunction(rng, (self.ROWS, self.COLS), dtype=self.DTYPE)
-		else:  # Initiate plane from file
-			self.plane = np.empty((self.ROWS, self.COLS), dtype=self.DTYPE)
-			with open(self.INPUT, "r") as file:
-				for y, line in enumerate(file.readlines()):
-					self.plane[y] = np.array(list(map(self.DTYPE, line.rstrip(";\n\r ").split(";"))))
 
-			self.persistent_diff = self.step(None, 1)[3]
-		# Calculate the number of grains
-		self.grains = sum(self.plane.flatten()) + sum(self.persistent_diff.flatten())
+				def rng(r, c):
+					random.random() * (self.Z_THRESH - 0.5)
+
+			else:
+
+				def rng(r, c):
+					random.randint(0, 3)
+
+			plane = self.from_func(dtype, rng)
+		else:  # Initiate plane from file
+			plane = self.from_map(dtype)
+		diff = np.zeros((self.ROWS, self.COLS), dtype=dtype)
+		return plane, diff
+
+	def from_map(self, dtype):
+		plane = np.empty((self.ROWS, self.COLS), dtype)
+		with open(self.INPUT, "r") as file:
+			for y, line in enumerate(file.readlines()):
+				plane[y] = np.fromiter(map(dtype, line.rstrip(";\n\r ").split(";")), dtype)
+		return plane
+
+	def from_func(self, dtype, func):
+		v_func = np.vectorize(func)
+		plane = np.fromfunction(v_func, (self.ROWS, self.COLS), dtype=dtype)
+		return plane
+
+	def put(self, diff, r, c):
+		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
+			coords = self.bound(r, c)
+			if coords is not None:
+				diff[coords[0]][coords[1]] += 1
+			else:
+				lost = 1
+				self.grains -= 1
+		else:
+			diff[r][c] += 1
+			lost = 0
+		return lost
 
 	# Runs one timestep
-	def step(self, p_diff, p_crits):
+	def step(self):
 
 		lost = 0
-		added = 0
-		# Create empty array to keep track of topples
-		diff = np.zeros((self.ROWS, self.COLS), dtype=self.DTYPE)
-		# If nothing is critical or the sandpile is defined to be running, place new grains
-		if p_crits == 0 or self.RUNNING:
-			added = self.grains_to_add()
-			for i in range(added):
-				r_, c_ = self.rand_pos()
-				p_diff[r_][c_] += 1
 		crits = 0
-		self.grains += added
+		added = 0
 
-		# Function to place grain on adjacent cells
-		def put(r, c, to_add):
-			nonlocal lost
-			try:
-				diff[r][c] += to_add
-			except IndexError:
-				coords = self.bound(r, c)
-				if coords:
-					diff[coords[0]][coords[1]] += to_add
-				else:
-					lost += to_add
-					self.grains -= to_add
+		initial = len(self.crits_stat) > 0
+
+		# Create empty array to keep track of topples
+		new_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+
+		# If nothing is critical or the sandpile is defined to be running, place new grains
+		if (initial and self.crits_stat[-1] == 0) or self.RUNNING:
+			added = self.grains_to_add()
+			self.grains += added
+			for i in range(added):
+				r, c = self.rand_pos()
+				self.diff[r][c] += 1
 
 		for r in range(self.ROWS):
 			for c in range(self.COLS):
-				if type(p_diff) != type(None):
-					if p_diff[r][c] == 0:
+				if initial:
+					if self.diff[r][c] == 0:
 						continue
-
-					self.plane[r][c] += p_diff[r][c]
-				if self.plane[r][c] >= self.C_THRESH:
+					self.plane[r][c] += self.diff[r][c]
+				if self.plane[r][c] >= 4:
 					crits += 1
-					if self.ZHANG:
-						diff[r][c] -= (1 - self.Z_EPSILON) * self.plane[r][c]
-					else:
-						diff[r][c] -= 4
+					new_diff[r][c] -= 4
 
-					if self.ZHANG:
-						to_add = (1 - self.Z_EPSILON) * self.plane[r][c] / 4
-					else:
-						to_add = 1
-					put(r - 1, c, to_add)
-					put(r + 1, c, to_add)
-					put(r, c - 1, to_add)
-					put(r, c + 1, to_add)
+					lost += (
+						self.put(new_diff, r - 1, c)
+						+ self.put(new_diff, r + 1, c)
+						+ self.put(new_diff, r, c - 1)
+						+ self.put(new_diff, r, c + 1)
+					)
 
-		return crits, added, lost, diff
+		return crits, added, lost, new_diff
+
+	def z_put(self, diff, r, c, to_add):
+		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
+			coords = self.bound(r, c)
+			if coords is not None:
+				diff[coords[0]][coords[1]] += to_add
+			else:
+				lost = to_add
+				self.grains -= to_add
+		else:
+			diff[r][c] += to_add
+			lost = 0
+		return lost
+
+	# Runs one timestep
+	def z_step(self):
+
+		lost = 0
+		crits = 0
+		added = 0
+
+		# Create empty array to keep track of topples
+		new_diff = np.zeros((self.ROWS, self.COLS), dtype=float)
+
+		# If nothing is critical or the sandpile is defined to be running, place new grains
+		if (len(self.crits_stat) > 0 and self.crits_stat[-1] == 0) or self.RUNNING:
+			added = self.grains_to_add()
+			self.grains += added
+			for i in range(added):
+				r, c = self.rand_pos()
+				self.diff[r][c] += 1
+
+		for r in range(self.ROWS):
+			for c in range(self.COLS):
+				if len(self.crits_stat) > 0:
+					if self.diff[r][c] == 0:
+						continue
+					self.plane[r][c] += self.diff[r][c]
+				if self.plane[r][c] >= self.Z_THRESH:
+					crits += 1
+					new_diff[r][c] -= (1 - self.Z_EPSILON) * self.plane[r][c]
+					to_add = (1 - self.Z_EPSILON) * self.plane[r][c] / 4
+
+					lost += (
+						self.z_put(new_diff, r - 1, c, to_add)
+						+ self.z_put(new_diff, r + 1, c, to_add)
+						+ self.z_put(new_diff, r, c - 1, to_add)
+						+ self.z_put(new_diff, r, c + 1, to_add)
+					)
+
+		return crits, added, lost, new_diff
 
 	def bound(self, r, c):
 		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain as tuple (r, c)
@@ -138,11 +196,12 @@ class World:
 	# Function to drive sandpile to SOC (where the graph oh the number of crits flattens out)
 	def drive_to_stable(self, max_t=1000000000):
 		q = deque(maxlen=20000)
-		diff = self.persistent_diff
-		crits = 0
 		# Run model for max_t timesteps or until graph flattens out
 		for i in range(max_t):
-			crits, added, lost, diff = self.step(diff, crits)
+			if self.ZHANG:
+				self.diff = self.z_step()[3]
+			else:
+				self.diff = self.step()[3]
 			q.append(self.grains)
 			# Every 100 timesteps where the queue is full
 			if len(q) == q.maxlen and i % 100 == 0:
@@ -155,66 +214,87 @@ class World:
 				print("\r{}".format(i + 1), end="")
 
 		print("")
-		self.persistent_diff = diff
 
-	# Runs the simulation for n timesteps and saves data
 	def drive(self, n, verbose=2, animate=False, graph=False):
-		# Create graphs
+		# Runs the simulation for n timesteps and saves data
+
 		if graph or animate:
+			# Create window for graphs and/or animation
 			pg_win = pg.GraphicsWindow()
 			pg_win.showMaximized()
 		if graph:
+			# Create widgets for graphs
 			c_plot = pg_win.addPlot(row=0, col=0, title="crits")
 			t_plot = pg_win.addPlot(row=1, col=0, title="total")
 			c_curve = c_plot.plot()
 			t_curve = t_plot.plot()
 		if animate:
-			canvas = pg_win.addPlot(row=0, col=1, rowspan=2, colspan=2, title="map")
+			# Create widget for animation
+			canvas = pg_win.addPlot(row=0, col=int(graph), rowspan=2, colspan=1, title="map")
 			canvas.setAspectLocked()
 			im_item = pg.ImageItem()
 			canvas.addItem(im_item)
-		diff = self.persistent_diff
-		crits = 0
 
 		rng = range(n)
-		# Create loading bar
 		if verbose == 2:
+			# Create loading bar
 			rng = tqdm(rng)
 
 		with open(self.OUTPUT, "a+") as data_file:
 			for i in rng:
-				# Run one timestep and save data
-				crits, added, lost, diff = self.step(diff, crits)
-				data_file.write("{};{};{};{};\n".format(crits, added, lost, self.grains))
+				# Run one timestep
+				if self.ZHANG:
+					crits, added, lost, self.diff = self.z_step()
+				else:
+					crits, added, lost, self.diff = self.step()
 
-				# Print progress and optionally map
-				if verbose == 1:
-					print("\r{}/{}".format(i + 1, n), end="")
-					if i == n - 1:
-						print("")
-				elif verbose == 3:
-					print(self.draw() + "\n")
+				# Write data to file
+				data_file.write(f"{crits};{added};{lost};{self.grains};\n")
 
 				if graph:
-					self.stats["crits"].append(crits)
-					self.stats["grains"].append(self.grains)
-					if i % 50 == 0 or animate:
-						c_curve.setData(self.stats["crits"])
-						t_curve.setData(self.stats["grains"])
-						if not animate:
-							pg.QtGui.QApplication.processEvents()
+					# Add new stats and update graph
+					self.update_stats(animate, crits, c_curve, t_curve, i)
+
+				if verbose == 1:
+					# Print progress
+					self.verbosity_1(i, n)
+				if verbose == 3:
+					# Print map
+					self.verbosity_3()
 
 				if animate:
-					im_item.setImage(self.plane, autoLevels=False, levels=(0, 4))
-					pg.QtGui.QApplication.processEvents()
+					# Show new frame of animation
+					self.show_frame(im_item)
 
-		self.persistent_diff = diff
+		self.save_map()
+		if graph:
+			pg_win.close()
 
+	def update_stats(self, animate, crits, c_curve, t_curve, step):
+		self.crits_stat.append(crits)
+		self.grains_stat.append(self.grains)
+		if step % 50 == 0 or animate:
+			c_curve.setData(self.crits_stat)
+			t_curve.setData(self.grains_stat)
+			if not animate:
+				pg.QtGui.QApplication.processEvents()
+
+	def verbosity_1(self, step, tot):
+		print("\r{}/{}".format(step + 1, tot), end="")
+		if step == tot - 1:
+			print("")
+
+	def verbosity_3(self):
+		print(self.draw() + "\n")
+
+	def show_frame(self, im_item):
+		im_item.setImage(self.plane, autoLevels=False, levels=(0, 4))
+		pg.QtGui.QApplication.processEvents()
+
+	def save_map(self):
 		if self.SAVE != "":
 			with open(self.SAVE, "w+") as save_file:
 				save_file.write(self.draw())
-		if graph:
-			pg_win.close()
 
 	# Returns a map of the world plane
 	def draw(self):
@@ -230,8 +310,7 @@ class World:
 if __name__ == "__main__":
 	from yaml import safe_load
 
-	config = dict()
 	with open("config.yml", "r") as cfg:
 		config = safe_load(cfg)
 	world = World(config)
-	world.drive(10000, 2, 1, 1)
+	world.drive(10000, 2, 0, 1)
