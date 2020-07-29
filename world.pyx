@@ -1,15 +1,29 @@
+# cython: language_level=3
+
 import random
 from collections import deque
 
 import numpy as np
+cimport numpy as cnp
 import pyqtgraph as pg
 from tqdm import tqdm
 
 pg.setConfigOptions(antialias=False)
 
 
-class World:
-	def __init__(self, config):
+cdef class World:
+	cdef:
+		int COLS, ROWS
+		str INPUT, SAVE, OUTPUT
+		float PROB
+		bint RUNNING, ZHANG
+		float Z_THRESH, Z_EPSILON
+		cnp.ndarray plane, diff
+		object crits_stat, grains_stat, grains
+	
+
+
+	def __init__(self, dict config):
 		random.seed(config["seed"])
 		np.random.seed(config["seed"])
 
@@ -24,7 +38,6 @@ class World:
 		self.Z_THRESH = config["z_threshold"]
 		self.Z_EPSILON = config["z_epsilon"]
 
-		# Array to keep track of topples between function calls
 
 		self.crits_stat = deque(maxlen=600)
 		self.grains_stat = deque(maxlen=10000)
@@ -49,15 +62,11 @@ class World:
 		dtype = float if self.ZHANG else int
 		if self.INPUT == "":  # initiate plane randomly
 			if self.ZHANG:
-
 				def rng(r, c):
-					random.random() * (self.Z_THRESH - 0.5)
-
+					return random.random() * (self.Z_THRESH - 0.5)
 			else:
-
 				def rng(r, c):
-					random.randint(0, 3)
-
+					return random.randint(0, 3)
 			plane = self.from_func(dtype, rng)
 		else:  # Initiate plane from file
 			plane = self.from_map(dtype)
@@ -76,7 +85,11 @@ class World:
 		plane = np.fromfunction(v_func, (self.ROWS, self.COLS), dtype=dtype)
 		return plane
 
-	def put(self, diff, r, c):
+	cdef put(self, cnp.ndarray[cnp.int_t, ndim=2] diff, int r, int c):
+		cdef:
+			tuple coords
+			int lost
+
 		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
 			coords = self.bound(r, c)
 			if coords is not None:
@@ -90,16 +103,17 @@ class World:
 		return lost
 
 	# Runs one timestep
-	def step(self):
+	cdef step(self):
+		cdef:
+			int lost = 0
+			int crits = 0
+			int added = 0
+			int r, c
 
-		lost = 0
-		crits = 0
-		added = 0
+			bint initial = bool(self.crits_stat)
 
-		initial = len(self.crits_stat) > 0
-
-		# Create empty array to keep track of topples
-		new_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+			# Create empty array to keep track of topples
+			cnp.ndarray[cnp.int_t, ndim=2] new_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		if (initial and self.crits_stat[-1] == 0) or self.RUNNING:
@@ -128,7 +142,10 @@ class World:
 
 		return crits, added, lost, new_diff
 
-	def z_put(self, diff, r, c, to_add):
+	cdef z_put(self, cnp.ndarray[cnp.float_t, ndim=2] diff, int r, int c, float to_add):
+		cdef:
+			tuple coords
+			float lost
 		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
 			coords = self.bound(r, c)
 			if coords is not None:
@@ -142,14 +159,15 @@ class World:
 		return lost
 
 	# Runs one timestep
-	def z_step(self):
+	cdef z_step(self):
+		cdef:
+			float lost = 0
+			int crits = 0
+			int added = 0
+			int r, c
 
-		lost = 0
-		crits = 0
-		added = 0
-
-		# Create empty array to keep track of topples
-		new_diff = np.zeros((self.ROWS, self.COLS), dtype=float)
+			# Create empty array to keep track of topples
+			cnp.ndarray[cnp.float_t, ndim=2] new_diff = np.zeros((self.ROWS, self.COLS), dtype=float)
 
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		if (len(self.crits_stat) > 0 and self.crits_stat[-1] == 0) or self.RUNNING:
@@ -179,18 +197,20 @@ class World:
 
 		return crits, added, lost, new_diff
 
-	def bound(self, r, c):
+	cdef bound(self, r, c):
 		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain as tuple (r, c)
 		return None
 
 	# Returns random position to place new grain on (r, c)
-	def rand_pos(self):
+	cdef rand_pos(self):
+		cdef:
+			int r, c
 		r = random.randint(0, self.ROWS - 1)
 		c = random.randint(0, self.COLS - 1)
 		return r, c
 
 	# Returns number of grains to add
-	def grains_to_add(self):
+	cdef grains_to_add(self):
 		return np.random.binomial(self.ROWS * self.COLS, self.PROB)
 
 	# Function to drive sandpile to SOC (where the graph oh the number of crits flattens out)
@@ -204,20 +224,20 @@ class World:
 				self.diff = self.step()[3]
 			q.append(self.grains)
 			# Every 100 timesteps where the queue is full
-			if len(q) == q.maxlen and i % 100 == 0:
+			if i % 100 == 0 and len(q) == q.maxlen:
 				# Break if the gradient of the regression line is less than a given value
 				a, b = np.polyfit(range(len(q)), q, 1)
-				print("\rStep {}, {:+.5f}".format(i + 1, a), end="")
+				print("\rStep {}, {:+.5f}".format(i, a), end="")
 				if abs(a) < 0.01:
 					break
 			elif i % 100 == 0:
-				print("\r{}".format(i + 1), end="")
+				print("\r{}".format(i), end="")
 
 		print("")
 
 	def drive(self, n, verbose=2, animate=False, graph=False):
 		# Runs the simulation for n timesteps and saves data
-
+		
 		if graph or animate:
 			# Create window for graphs and/or animation
 			pg_win = pg.GraphicsWindow()
@@ -230,10 +250,13 @@ class World:
 			t_curve = t_plot.plot()
 		if animate:
 			# Create widget for animation
-			canvas = pg_win.addPlot(row=0, col=int(graph), rowspan=2, colspan=1, title="map")
+			# d = pg_win.addPlot(row=0, col=0, title="d")
+			# dc = d.plot()
+			canvas = pg_win.addPlot(row=0, col=int(graph), rowspan=2, colspan=2, title="map")
 			canvas.setAspectLocked()
 			im_item = pg.ImageItem()
 			canvas.addItem(im_item)
+			
 
 		rng = range(n)
 		if verbose == 2:
@@ -251,6 +274,7 @@ class World:
 				# Write data to file
 				data_file.write(f"{crits};{added};{lost};{self.grains};\n")
 
+				self.crits_stat.append(crits)
 				if graph:
 					# Add new stats and update graph
 					self.update_stats(animate, crits, c_curve, t_curve, i)
@@ -271,7 +295,6 @@ class World:
 			pg_win.close()
 
 	def update_stats(self, animate, crits, c_curve, t_curve, step):
-		self.crits_stat.append(crits)
 		self.grains_stat.append(self.grains)
 		if step % 50 == 0 or animate:
 			c_curve.setData(self.crits_stat)
@@ -306,11 +329,3 @@ class World:
 
 		return s
 
-
-if __name__ == "__main__":
-	from yaml import safe_load
-
-	with open("config.yml", "r") as cfg:
-		config = safe_load(cfg)
-	world = World(config)
-	world.drive(10000, 2, 0, 1)

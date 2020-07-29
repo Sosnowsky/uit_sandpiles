@@ -1,3 +1,7 @@
+"""
+Add "# cython: profile=True" to world.pyx before profiling
+"""
+
 import pstats
 import cProfile
 from yaml import safe_load
