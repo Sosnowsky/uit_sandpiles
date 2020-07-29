@@ -4,5 +4,6 @@ __pycache__
 config.yml
 test
 backups
-test*
 Profile.prof
+build
+world.c*
