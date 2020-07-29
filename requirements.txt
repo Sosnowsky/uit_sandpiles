@@ -4,3 +4,4 @@ tqdm
 pyqtgraph
 PyQt5
 numpy
+cython
