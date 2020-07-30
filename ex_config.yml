@@ -2,6 +2,8 @@ seed: 666
 columns: 64
 rows: 64
 probability: 0.001
+d_probability: 0.00005
+n_runs: 20
 running: False
 input: 'testm.txt'
 zhang: False
