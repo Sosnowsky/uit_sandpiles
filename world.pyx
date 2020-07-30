@@ -235,7 +235,7 @@ cdef class World:
 
 		print("")
 
-	def drive(self, n, verbose=2, animate=False, graph=False):
+	def drive(self, n, verbose=2, animate=False, graph=False, nest_tqdm=False):
 		# Runs the simulation for n timesteps and saves data
 		
 		if graph or animate:
@@ -261,7 +261,7 @@ cdef class World:
 		rng = range(n)
 		if verbose == 2:
 			# Create loading bar
-			rng = tqdm(rng)
+			rng = tqdm(rng, leave=not nest_tqdm)
 
 		with open(self.OUTPUT, "a+") as data_file:
 			for i in rng:
@@ -290,9 +290,11 @@ cdef class World:
 					# Show new frame of animation
 					self.show_frame(im_item)
 
+
 		self.save_map()
-		if graph:
+		if graph or animate:
 			pg_win.close()
+			pg.QtGui.QApplication.processEvents()
 
 	def update_stats(self, animate, crits, c_curve, t_curve, step):
 		self.grains_stat.append(self.grains)
