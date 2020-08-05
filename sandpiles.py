@@ -5,6 +5,11 @@ from tqdm import tqdm
 import signal
 from copy import deepcopy
 
+
+def rreplace(s, r1, r2):
+	return r2.join(s.rsplit(r1, 1))
+
+
 reps = 500
 offsite = False
 
@@ -27,8 +32,9 @@ for i in range(n_worlds):
 	mod_config = deepcopy(config)
 	p = p0 + i * dp
 	mod_config["probability"] = p
-	mod_config["output"]["data"] = config["output"]["data"].replace("/", f"/{i}/")
-	mod_config["output"]["map"] = config["output"]["map"].replace("/", f"/{i}/")
+	mod_config["output"]["data"] = rreplace(config["output"]["data"], "/", f"/{i}_")
+	mod_config["output"]["map"] = rreplace(config["output"]["map"], "/", f"/{i}_")
+	mod_config["input"] = rreplace(config["input"], "/", f"/{i}_")
 	worlds.append(World(mod_config))
 	configs.append(mod_config)
 
@@ -66,8 +72,11 @@ flag = Flag()
 print()
 while True:
 	for i, world in enumerate(tqdm(worlds, leave=False)):
+		# if not c:
+		# 	world.drive(50, verbose=2, animate=True, graph=True, nest_tqdm=True)
+		# else:
 		world.drive(reps, verbose=2, animate=False, graph=False, nest_tqdm=True)
-		if flag.flag or i == n_worlds - 1:
+		if i == n_worlds - 1:
 			progress_print(c + int(not flag.flag), reps)
 			break
 	if flag.flag:
