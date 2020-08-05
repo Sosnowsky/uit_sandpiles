@@ -1,25 +1,29 @@
 from tqdm import tqdm
+from scipy.signal import welch
 
-thresholds = [0, 3.3, 6.6, 13.2, 26.3, 52.6, 104.9]
 
-durations = [[] for i in thresholds]
-areas = [[] for i in thresholds]
-dur = [0] * len(thresholds)
-area = [0] * len(thresholds)
+dur = 0
+area = 0
+
+crits = []
 
 with open("./data/p0.0001_256/data.txt", "r") as raw, open(
-	"./data/p0.0001_256/analysed.txt", "w"
+	"./data/p0.0001_256/events.txt", "w"
 ) as out:
 	for line in tqdm(raw.readlines()[3:]):
 		strs = line.rstrip(";\n\r ").split(";")
 		crit = int(strs[0])
-		for i in range(len(thresholds)):
-			if crit <= thresholds[i] and dur[i] > 0:
-				durations[i].append(dur[i])
-				areas[i].append(area[i])
-				out.write(f"{i}: {dur[i]}, {area[i]}\n")
-				dur[i] = 0
-				area[i] = 0
-			elif crit > thresholds[i]:
-				dur[i] += 1
-				area[i] += crit
+		crits.append(crit)
+		if crit == 0 and dur > 0:
+			out.write(f"{dur};{area}\n")
+			dur = 0
+			area = 0
+		elif crit > 0:
+			dur += 1
+			area += crit
+
+N = len(crits)
+freq, density = welch(crits, nperseg=N / 10000)
+with open("./data/p0.0001_256/nps10000.txt", "w") as file:
+	for f, s in zip(freq, density):
+		file.write(f"{f};{s}\n")

@@ -68,7 +68,7 @@ for threshold, color, duration, area in zip(tqdm(thresholds), colors, durations,
 			pen=None,
 		)
 	)
-
+	p_square, p_d_square, d2_square, p_d2_square = (None,) * 4
 	for i in range(len(log_dpdf) - 2):
 		linreg, square = np.polyfit(log_bins[i:], log_dpdf[i:], 1, full=True)[:2]
 		if i > 0:
