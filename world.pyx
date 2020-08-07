@@ -50,9 +50,11 @@ cdef class World:
 
 		# Write header to data file (unless we're reading an input map)
 		with open(self.OUTPUT, "a+") as data_file:
+			data_file.seek(0)
 			if data_file.readline() == "":
+				data_file.seek(0, 2)
 				data_file.write(
-					f"{self.ROWS} rows, {self.COLS} cols, p={self.PROB}, running={self.RUNNING}, "
+					f"{self.ROWS} rows, {self.COLS} cols, p={self.PROB:.7f}, running={self.RUNNING}, "
 					f"seed={config['seed']}{', zhang' if self.ZHANG else ''}\n"
 				)
 				data_file.write("critical cells; added grains; lost grains; total grains;\n")
@@ -261,7 +263,7 @@ cdef class World:
 		rng = range(n)
 		if verbose == 2:
 			# Create loading bar
-			rng = tqdm(rng, leave=not nest_tqdm)
+			rng = tqdm(rng, leave=not nest_tqdm, position=1 if nest_tqdm else None)
 
 		with open(self.OUTPUT, "a+") as data_file:
 			for i in rng:

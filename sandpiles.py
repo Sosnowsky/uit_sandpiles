@@ -1,14 +1,21 @@
 from yaml import safe_load
 from world import World
 from subprocess import call
-from tqdm import tqdm
 import signal
 from copy import deepcopy
+from multiprocessing.pool import Pool
+from multiprocessing import cpu_count, current_process
+from multiprocessing.context import ForkProcess
+import sys
+from tqdm import tqdm
 
 
 def rreplace(s, r1, r2):
 	return r2.join(s.rsplit(r1, 1))
 
+
+# cython uses the rest of the cores more efficiently than multiprocessing can
+cores_used = cpu_count() / 2
 
 reps = 500
 offsite = False
@@ -34,7 +41,7 @@ for i in range(n_worlds):
 	mod_config["probability"] = p
 	mod_config["output"]["data"] = rreplace(config["output"]["data"], "/", f"/{i}_")
 	mod_config["output"]["map"] = rreplace(config["output"]["map"], "/", f"/{i}_")
-	mod_config["input"] = rreplace(config["input"], "/", f"/{i}_")
+	# mod_config["input"] = rreplace(config["input"], "/", f"/{i}_")
 	worlds.append(World(mod_config))
 	configs.append(mod_config)
 
@@ -43,8 +50,19 @@ if config["input"] == "":
 	print(
 		"No input file specified - initiating randomly and driving to critical configurations"
 	)
-	for world in worlds:
-		world.drive_to_stable()
+
+	def drive_to_stable_wrapper(tup):
+		i, world = tup
+		sys.stdout = open(f"proclogs/world{i}.out", "a", buffering=2)
+		sys.stderr = open(f"proclogs/world{i}_err.out", "a", buffering=2)
+		World.drive_to_stable(world)
+
+	pool = Pool()
+	for res in tqdm(pool.imap_unordered(drive_to_stable_wrapper, enumerate(worlds))):
+		pass
+	pool.close()
+	pool.join()
+	print("Criticality reached in all systems")
 
 
 class Flag:
@@ -53,39 +71,48 @@ class Flag:
 		signal.signal(signal.SIGINT, self.change_state)
 
 	def change_state(self, signum, frame):
-		progress_print(string="Exit flag set to True (repeat to exit now)")
+		if type(current_process()) != ForkProcess:
+			print("\b\b  \nExiting after batch is done (repeat to exit now)")
 		signal.signal(signal.SIGINT, signal.SIG_DFL)
 		self.flag = True
 
 
-def progress_print(s=None, r=None, lines_up=1, string=None):
-	if string:
-		tqdm.write("\033[F" * lines_up + "\033[K" + string)
+def drive_wrapper(tup):
+	i, world = tup
+	if i % cores_used:
+		sys.stdout = open(f"proclogs/world{i}.out", "a", buffering=2)
+		sys.stderr = open(f"proclogs/world{i}_err.out", "a", buffering=2)
+		World.drive(world, reps, verbose=0)
 	else:
-		tqdm.write(
-			"\033[F" * lines_up + f"\033[K{s} sets of {r} timesteps simulated in each world"
-		)
+		sys.stdout = sys.__stdout__
+		sys.stderr = sys.__stderr__
+		World.drive(world, reps, verbose=2, nest_tqdm=True)
 
 
 c = 0
 flag = Flag()
-print()
-while True:
-	for i, world in enumerate(tqdm(worlds, leave=False)):
-		# if not c:
-		# 	world.drive(50, verbose=2, animate=True, graph=True, nest_tqdm=True)
-		# else:
-		world.drive(reps, verbose=2, animate=False, graph=False, nest_tqdm=True)
-		if i == n_worlds - 1:
-			progress_print(c + int(not flag.flag), reps)
+try:
+	while True:
+		pool = Pool(4)
+		for res in tqdm(
+			pool.imap_unordered(drive_wrapper, enumerate(worlds)),
+			position=0,
+			desc=f"Batch {c}",
+			total=n_worlds,
+		):
+			pass
+		pool.close()
+		pool.join()
+
+		for i, conf in enumerate(configs):
+			call(["cp", conf["output"]["data"], "{}/{}.d".format(local_backup, i)])
+			call(["cp", conf["output"]["map"], "{}/{}.m".format(local_backup, i)])
+			if offsite:
+				call("scp -P 2200 {}/{}.* {}/".format(local_backup, i, network_backup), shell=True)
+
+		if flag.flag:
 			break
-	if flag.flag:
-		break
 
-	for i, conf in enumerate(configs):
-		call(["cp", conf["output"]["data"], "{}/{}.d".format(local_backup, i)])
-		call(["cp", conf["output"]["map"], "{}/{}.m".format(local_backup, i)])
-		if offsite:
-			call("scp -P 2200 {}/{}.* {}/".format(local_backup, i, network_backup), shell=True)
-
-	c += 1
+		c += 1
+except KeyboardInterrupt:
+	pool.terminate()
