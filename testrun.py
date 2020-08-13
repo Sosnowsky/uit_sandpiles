@@ -1,7 +1,12 @@
 from yaml import safe_load
 from world import World
 
-with open("config.yml", "r") as cfg:
+# Load config file
+with open("ex_config.yml", "r") as cfg:
 	config = safe_load(cfg)
+
+# Initiate world
 world = World(config)
-world.drive(20000, 2, 1, 0)
+
+# Drive world
+world.drive(100, animate=1, graph=1)
