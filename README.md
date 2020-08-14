@@ -1,4 +1,35 @@
-# Sandpiles - THIS README IS RARELY UP TO DATE
+# Investigating power laws in sandpile models
+
+## Models
+
+The two models that currently are implemented are the BTW sandpile model (also known as the Abelian sandpile model) and the Zhang sandpile model. Both take place on a plane of individual cells.
+
+### BTW model
+
+Each cell has an integer value representing the number of grains at that cell. If the number of grains at a cell is greater than or equal to 4, 4 grains are removed from this cell and equally distributed between its four neighboring cells (both in the next timestep). This process is referred to as toppling of a critical site.
+
+At the beginning of a timestep, new grains are added to the plane. By default these new grains are uniformly randomly distributed amongst all cells, but this can be modified. The number of grains added is another modifiable parameter; It can among other things be a constant (1 is often used), or a number drawn from a distribution.
+
+If the simulation is configured as `running`, this introduction of new grains happens at each timestep - otherwise it only happens when there were no critical cells in the previous timestep.
+
+More info available on [Wikipedia](https://en.wikipedia.org/wiki/Abelian_sandpile_model).
+
+### The Zhang model
+
+Here, the number of grains is no longer discrete - each cell has a continuous value. If this grain value is greater than or equal to some constant, this value is multiplied by some constant $\epsilon$. The ammount it is reduced by is equally distributed among the four neighboring cells.
+
+The introduction of new grains is similar to in the BTW model
+
+## Directory structure
+
+The data generated and analysed in this project is exchanged between scripts in the shape of text files. This is rather impractical, so implementing some database (maybe hdf5?) would be a significant improvement.
+
+Nevertheless, as is, raw data from the simulation is temporarily stored in `.txt` files. These are periodically backed up as `.d` and `.m` files, containing simulation time series and a serialised map of the simultion plane respectively.
+
+When analysed, the following files are generated for each `*.d` file:
+
+* `*.e` - a file containing the durations and areas/magnitudes of each topple event, categorized in thresholds.
+  * Format: `[threshold index];[duration];[area]`
 
 ## Config file, inputs and outputs
 

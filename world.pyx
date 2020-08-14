@@ -189,6 +189,7 @@ cdef class World:
 				if animate:
 					# Show new frame of animation
 					self.show_frame(im_item)
+					im_item.save(f'media/{i}.png')
 
 
 		self.save_map()

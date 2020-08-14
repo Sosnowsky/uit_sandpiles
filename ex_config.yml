@@ -1,6 +1,6 @@
 seed: 666
-columns: 64
-rows: 64
+columns: 40
+rows: 40
 probability: 0.001
 d_probability: 0.00005
 n_runs: 20
