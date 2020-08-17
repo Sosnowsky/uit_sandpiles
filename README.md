@@ -21,6 +21,7 @@ More info available on [Wikipedia](https://en.wikipedia.org/wiki/Abelian_sandpil
   </figure>
   <br>
   <br>
+  <br>
   <figure style='text-align: center'>
   <img src='https://github.com/AFNordal/uit_sandpiles/raw/master/documentation/btw_running.gif' alt='btw-running-gif'>
   <figcaption> The "running" BTW model </figcaption>
