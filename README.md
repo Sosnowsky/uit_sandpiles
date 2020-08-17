@@ -15,11 +15,13 @@ If the simulation is configured as `running`, this introduction of new grains ha
 More info available on [Wikipedia](https://en.wikipedia.org/wiki/Abelian_sandpile_model).
 
 <p>
-  <figure style='display: inline-block; text-align: center'>
+  <figure style='text-align: center'>
   <img src='https://github.com/AFNordal/uit_sandpiles/raw/master/documentation/btw.gif' alt='btw-gif'>
   <figcaption> The BTW model (not "running") </figcaption>
   </figure>
-  <figure style='display: inline-block; text-align: center'>
+  <br>
+  <br>
+  <figure style='text-align: center'>
   <img src='https://github.com/AFNordal/uit_sandpiles/raw/master/documentation/btw_running.gif' alt='btw-running-gif'>
   <figcaption> The "running" BTW model </figcaption>
   </figure>
