@@ -1,10 +1,13 @@
 import pyqtgraph as pg
 import numpy as np
+
 # from pyqtgraph.exporters import SVGExporter
 from pyqtgraph import QtCore
 
+datadir = "2048"
+
 # number of trials run
-n_files = 20
+n_files = 4
 
 # Create window for graphs
 win = pg.GraphicsLayoutWidget(title="Coefficients")
@@ -19,7 +22,7 @@ thresholds = []
 
 # Read threshold values from file
 for i in range(n_files):
-	with open(f"data/prange_5e-6/{i}.t", "r") as file:
+	with open(f"data/{datadir}/{i}.t", "r") as file:
 		subs = file.readlines()[0].split(";")
 		thresholds.append(list(map(int, subs)))
 
@@ -69,10 +72,10 @@ for i, p in enumerate(probs):
 	p1.addItem(reg)
 	p1.setMaximumHeight(70)
 
-tplots("data/prange_5e-6/dur_a.c", "duration v. area")
-tplots("data/prange_5e-6/a_pdf.c", "area distribution")
-tplots("data/prange_5e-6/dur_pdf.c", "duration distribution")
-tplots("data/prange_5e-6/q_pdf.c", "quiet-time distribution")
+tplots(f"data/{datadir}/dur_a.c", "duration v. area")
+tplots(f"data/{datadir}/a_pdf.c", "area distribution")
+tplots(f"data/{datadir}/dur_pdf.c", "duration distribution")
+tplots(f"data/{datadir}/q_pdf.c", "quiet-time distribution")
 
 # The spectral density estimation does not rely on thresholds - so we dont use 'tplots()'
 win.nextRow()
@@ -81,7 +84,7 @@ win.nextRow()
 p = win.addPlot(
 	col=0, colspan=2, labels={"left": "coefficients", "bottom": "probability"}
 )
-with open("data/prange_5e-6/freq.c", "r") as file:
+with open(f"data/{datadir}/freq.c", "r") as file:
 	data = list(map(float, file.readlines()))
 
 p.plot(probs, data, pen="r")

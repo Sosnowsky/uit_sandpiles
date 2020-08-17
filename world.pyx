@@ -17,7 +17,7 @@ pg.setConfigOptions(antialias=False)
 cdef class World:
 	cdef:
 		# Config options
-		int COLS, ROWS
+		int COLS, ROWS, counter, DELTA_T
 		str INPUT, SAVE, OUTPUT
 		float PROB
 		bint RUNNING, ZHANG
@@ -43,13 +43,14 @@ cdef class World:
 		self.INPUT = config["input"]
 		self.PROB = config["probability"]
 		self.RUNNING = config["running"]
+		self.DELTA_T = config["delta_t"]
 		self.SAVE = config["output"]["map"]
 		self.OUTPUT = config["output"]["data"]
 		self.ZHANG = config["zhang"]
 		self.Z_THRESH = config["z_threshold"]
 		self.Z_EPSILON = config["z_epsilon"]
 
-
+		self.counter = 0
 		self.crits_stat = deque(maxlen=600)
 		self.grains_stat = deque(maxlen=10000)
 
@@ -79,7 +80,7 @@ cdef class World:
 			# Create a function for generating random numbers
 			if self.ZHANG:
 				def rng(r, c):
-					return random.random() * (self.Z_THRESH - 0.5)
+					return random.random() * self.Z_THRESH
 			else:
 				def rng(r, c):
 					return random.randint(0, 3)
@@ -189,7 +190,6 @@ cdef class World:
 				if animate:
 					# Show new frame of animation
 					self.show_frame(im_item)
-					im_item.save(f'media/{i}.png')
 
 
 		self.save_map()
@@ -214,18 +214,21 @@ cdef class World:
 
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		# This relies on there being content in the crits_stat deque
-		if (queue_content and self.crits_stat[-1] == 0) or self.RUNNING:
+		if (queue_content and self.crits_stat[-1] == 0 and not self.RUNNING) or (
+			self.RUNNING and (self.counter % self.DELTA_T) == 0
+		):
 			added = self.grains_to_add()
-			self.grains += added
 			for i in range(added):
 				r, c = self.rand_pos()
-				self.diff[r][c] += 1
+				to_add = self.add_per_spot()
+				self.diff[r][c] += to_add
+				self.grains += to_add
 		
 		# Iterate through all cells on plane
 		for r in range(self.ROWS):
 			for c in range(self.COLS):
 				# If self.diff has content
-				if queue_content or self.RUNNING:
+				if queue_content:
 					# Skip if nothing to add
 					if self.diff[r][c] == 0:
 						continue
@@ -243,7 +246,7 @@ cdef class World:
 						+ self.put(new_diff, r, c - 1)
 						+ self.put(new_diff, r, c + 1)
 					)
-
+		self.counter += 1
 		return crits, added, lost, new_diff
 
 	# Runs one timestep in zhang mode
@@ -263,18 +266,21 @@ cdef class World:
 
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		# This relies on there being content in the crits_stat deque
-		if (queue_content and self.crits_stat[-1] == 0) or self.RUNNING:
+		if (queue_content and self.crits_stat[-1] == 0 and not self.RUNNING) or (
+			self.RUNNING and (self.counter % self.DELTA_T) == 0
+		):
 			added = self.grains_to_add()
-			self.grains += added
 			for i in range(added):
 				r, c = self.rand_pos()
-				self.diff[r][c] += 1
+				to_add = self.add_per_spot()
+				self.diff[r][c] += to_add
+				self.grains += to_add
 
 		# Iterate through all cells on plane
 		for r in range(self.ROWS):
 			for c in range(self.COLS):
 				# If self.diff has content
-				if queue_content or self.RUNNING:
+				if queue_content:
 					# Skip if nothing to add
 					if self.diff[r][c] == 0:
 						continue
@@ -294,13 +300,20 @@ cdef class World:
 						+ self.z_put(new_diff, r, c - 1, to_add)
 						+ self.z_put(new_diff, r, c + 1, to_add)
 					)
-
+		self.counter += 1
 		return crits, added, lost, new_diff
 
-	# Returns number of grains to add
+	# Returns number of spots to add grains to
 	cdef grains_to_add(self):
 		# return np.random.binomial(self.ROWS * self.COLS, self.PROB)
 		return 1
+
+	# Returns number of grains to add at a spot
+	cdef add_per_spot(self):
+		if self.ZHANG:
+			return random.random() * self.Z_THRESH
+		else:
+			return 1
 
 	# Returns random position to place new grain on (r, c)
 	cdef rand_pos(self):
@@ -375,7 +388,11 @@ cdef class World:
 
 	# Function to show frame in animation
 	def show_frame(self, im_item):
-		im_item.setImage(self.plane, autoLevels=False, levels=(0, 4))
+		if self.ZHANG:
+			levels = (0, self.Z_THRESH)
+		else:
+			levels = (0, 4)
+		im_item.setImage(self.plane, autoLevels=False, levels=levels)
 		pg.QtGui.QApplication.processEvents()
 
 	# Function to save current plane to file

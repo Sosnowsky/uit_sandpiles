@@ -4,11 +4,12 @@ rows: 40
 probability: 0.001
 d_probability: 0.00005
 n_runs: 20
-running: False
+running: True
+delta_t: 10
 input: 'testm.txt'
-zhang: False
-z_threshold: 4
-z_epsilon: 0.5
+zhang: True
+z_threshold: 1
+z_epsilon: 0.3
 output:
   data: 'test.txt'
   map: 'testm.txt'

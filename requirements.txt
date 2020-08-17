@@ -6,3 +6,4 @@ PyQt5
 numpy
 cython
 more-itertools
+scipy

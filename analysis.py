@@ -3,8 +3,9 @@ from scipy.signal import welch
 from definitions import thresholds_gen, n_thresholds
 import numpy as np
 
+datadir = "2048"
 # number of trials to analyse - each with different probability values
-n_files = 20
+n_files = 4
 for i in range(n_files):
 	dur = 0
 	area = 0
@@ -12,7 +13,7 @@ for i in range(n_files):
 	crits = []
 
 	# Load data file and store data in 'crits'
-	with open(f"./data/prange_5e-6/{i}.d", "r") as raw:
+	with open(f"./data/{datadir}/{i}.d", "r") as raw:
 		for line in tqdm(raw.readlines()[3:], desc=f"loading crits ({i})"):
 			strs = line.rstrip(";\n\r ").split(";")
 			crit = int(strs[0])
@@ -33,14 +34,14 @@ for i in range(n_files):
 	freq, density = welch(crits, nperseg=N / 10000)
 
 	# Save spectral density data to file
-	with open(f"./data/prange_5e-6/{i}.f", "w") as freqfile:
+	with open(f"./data/{datadir}/{i}.f", "w") as freqfile:
 		for f, s in zip(freq, density):
 			freqfile.write(f"{f};{s}\n")
 
 	# Calculate quiet times between spikes as well as durations and areas of spikes
 	# This is written directly to file
-	with open(f"./data/prange_5e-6/{i}.e", "w") as eventfile, open(
-		f"./data/prange_5e-6/{i}.q", "w"
+	with open(f"./data/{datadir}/{i}.e", "w") as eventfile, open(
+		f"./data/{datadir}/{i}.q", "w"
 	) as quietfile:
 		for crit in tqdm(crits):
 			for t, threshold in enumerate(thresholds):
@@ -59,5 +60,5 @@ for i in range(n_files):
 					quiets[t] = 0
 
 	# Save threshold values to file
-	with open(f"./data/prange_5e-6/{i}.t", "w") as threshfile:
+	with open(f"./data/{datadir}/{i}.t", "w") as threshfile:
 		threshfile.write(";".join(map(str, thresholds)))

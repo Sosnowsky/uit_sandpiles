@@ -6,6 +6,8 @@ from more_itertools import pairwise
 from time import sleep
 from definitions import n_thresholds
 
+datadir = "2048"
+
 
 class Button(QtGui.QGraphicsProxyWidget):
 	# Wrapper class for pyqtgraph button
@@ -171,7 +173,7 @@ def categorized_series_from_file(fname, n_series, dtypes, cat_idx, series_idx):
 
 
 # Number of trials run with different robabilities
-n_files = 20
+n_files = 4
 
 # Create window for gui
 win = pg.GraphicsLayoutWidget()
@@ -194,7 +196,7 @@ counter = 1
 def load_freqs(num):
 	# Function to load next spectral density data from file
 	global density, freq
-	freq, density = series_from_file(f"data/prange_5e-6/{num}.f", 2, dtypes=[float, float])
+	freq, density = series_from_file(f"data/{datadir}/{num}.f", 2, dtypes=[float, float])
 	crit_freq_plot.loglog_plot(freq, density)
 
 
@@ -267,23 +269,19 @@ def advance():
 def save_coeffs():
 	# Save all coefficients to files
 	print("saving")
-	with open("data/prange_5e-6/freq.c", "w") as file:
+	with open(f"data/{datadir}/freq.c", "w") as file:
 		for i in freq_coeffs:
 			file.write(str(i) + "\n")
-	print("saving")
-	with open("data/prange_5e-6/q_pdf.c", "w") as file:
+	with open(f"data/{datadir}/q_pdf.c", "w") as file:
 		for i in q_pdf_coeffs:
 			file.write(";".join(map(str, i)) + "\n")
-	print("saving")
-	with open("data/prange_5e-6/dur_pdf.c", "w") as file:
+	with open(f"data/{datadir}/dur_pdf.c", "w") as file:
 		for i in dur_pdf_coeffs:
 			file.write(";".join(map(str, i)) + "\n")
-	print("saving")
-	with open("data/prange_5e-6/a_pdf.c", "w") as file:
+	with open(f"data/{datadir}/a_pdf.c", "w") as file:
 		for i in a_pdf_coeffs:
 			file.write(";".join(map(str, i)) + "\n")
-	print("saving")
-	with open("data/prange_5e-6/dur_a.c", "w") as file:
+	with open(f"data/{datadir}/dur_a.c", "w") as file:
 		for i in dur_a_coeffs:
 			file.write(";".join(map(str, i)) + "\n")
 	print("saved all")
@@ -307,11 +305,11 @@ def load_plots(num):
 
 # Load data before analysing
 events = [
-	categorized_series_from_file(f"data/prange_5e-6/{f}.e", 2, [int, int], 0, [1, 2])
+	categorized_series_from_file(f"data/{datadir}/{f}.e", 2, [int, int], 0, [1, 2])
 	for f in tqdm(range(n_files))
 ]
 quiets = [
-	categorized_series_from_file(f"data/prange_5e-6/{f}.q", 1, [int], 0, [1])
+	categorized_series_from_file(f"data/{datadir}/{f}.q", 1, [int], 0, [1])
 	for f in tqdm(range(n_files))
 ]
 # Close spectral density analysis plot
