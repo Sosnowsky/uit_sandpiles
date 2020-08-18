@@ -6,7 +6,7 @@ from more_itertools import pairwise
 from time import sleep
 from definitions import n_thresholds
 
-datadir = "2048"
+datadir = "prange_5e-6"
 
 
 class Button(QtGui.QGraphicsProxyWidget):
@@ -173,7 +173,7 @@ def categorized_series_from_file(fname, n_series, dtypes, cat_idx, series_idx):
 
 
 # Number of trials run with different robabilities
-n_files = 4
+n_files = 20
 
 # Create window for gui
 win = pg.GraphicsLayoutWidget()

@@ -4,10 +4,10 @@ import numpy as np
 # from pyqtgraph.exporters import SVGExporter
 from pyqtgraph import QtCore
 
-datadir = "2048"
+datadir = "prange_5e-6"
 
 # number of trials run
-n_files = 4
+n_files = 20
 
 # Create window for graphs
 win = pg.GraphicsLayoutWidget(title="Coefficients")

@@ -3,9 +3,9 @@ from scipy.signal import welch
 from definitions import thresholds_gen, n_thresholds
 import numpy as np
 
-datadir = "2048"
+datadir = "prange_5e-6"
 # number of trials to analyse - each with different probability values
-n_files = 4
+n_files = 20
 for i in range(n_files):
 	dur = 0
 	area = 0

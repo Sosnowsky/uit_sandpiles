@@ -9,5 +9,5 @@ with open("ex_config.yml", "r") as cfg:
 world = World(config)
 
 # Drive world
-world.drive(1000, animate=1, graph=1)
+world.drive(10000, animate=1, graph=1)
 # world.drive_to_stable()

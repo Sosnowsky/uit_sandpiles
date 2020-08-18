@@ -1,13 +1,13 @@
 seed: 666
-columns: 40
-rows: 40
+columns: 256
+rows: 256
 probability: 0.001
 d_probability: 0.00005
 n_runs: 20
-running: True
+running: False
 delta_t: 10
-input: 'testm.txt'
-zhang: True
+input: 'data/256map.txt'
+zhang: False
 z_threshold: 1
 z_epsilon: 0.3
 output:
