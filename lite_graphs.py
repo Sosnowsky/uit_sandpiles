@@ -6,7 +6,7 @@ from more_itertools import pairwise
 from time import sleep
 from definitions import n_thresholds
 
-datadir = "prange_5e-6"
+datadir = "2048"
 
 
 class Button(QtGui.QGraphicsProxyWidget):
@@ -173,7 +173,7 @@ def categorized_series_from_file(fname, n_series, dtypes, cat_idx, series_idx):
 
 
 # Number of trials run with different robabilities
-n_files = 20
+n_files = 4
 
 # Create window for gui
 win = pg.GraphicsLayoutWidget()
@@ -203,10 +203,11 @@ def load_freqs(num):
 def advance_freqs():
 	# Function to store results from analysis of current batch and load next batch
 	global counter
-	freq_coeffs.append(crit_freq_plot.coeff)
-	if counter < n_files:
-		load_freqs(counter)
+	if counter <= n_files:
+		freq_coeffs.append(crit_freq_plot.coeff)
 		counter += 1
+	if counter - 1 < n_files:
+		load_freqs(counter - 1)
 	else:
 		print("Enter to proceed")
 		return -1

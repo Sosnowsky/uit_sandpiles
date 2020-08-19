@@ -4,8 +4,8 @@ rows: 256
 probability: 0.001
 d_probability: 0.00005
 n_runs: 20
-running: False
 delta_t: 10
+running: False
 input: 'data/256map.txt'
 zhang: False
 z_threshold: 1
