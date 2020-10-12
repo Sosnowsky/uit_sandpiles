@@ -5,6 +5,6 @@ import numpy
 setup(
 	name="world",
 	ext_modules=cythonize(
-		Extension("world", ["world.pyx"], include_dirs=[numpy.get_include()])
+		Extension("world", ["world.py"], include_dirs=[numpy.get_include()])
 	),
 )

@@ -1,5 +1,5 @@
 """
-Add "# cython: profile=True" to world.pyx before profiling
+Add "# cython: profile=True" to world.py before profiling
 """
 
 import pstats
@@ -7,7 +7,7 @@ import cProfile
 from yaml import safe_load
 from world import World
 
-with open("config.yml", "r") as cfg:
+with open("ex_config.yml", "r") as cfg:
 	config = safe_load(cfg)
 
 world = World(config)

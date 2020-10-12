@@ -1,12 +1,8 @@
-# cython: language_level=3
-# Set cython to python3 mode
-
 import random
 from collections import deque
 from itertools import count
 
 import numpy as np
-cimport numpy as cnp
 import pyqtgraph as pg
 from tqdm import tqdm
 
@@ -14,27 +10,10 @@ from tqdm import tqdm
 pg.setConfigOptions(antialias=False)
 
 
-cdef class World:
-	cdef:
-		# Config options
-		int COLS, ROWS, counter, DELTA_T
-		str INPUT, SAVE, OUTPUT
-		float PROB
-		bint RUNNING, ZHANG
-		float Z_THRESH, Z_EPSILON
-		
-		# Arrays for containing the plane and the grains to be added between consequtive steps
-		cnp.ndarray plane, diff
+class World:
 
-		# Deques for keeping record of the numbetr of critical spots and total number of grains
-		object crits_stat, grains_stat
-		
-		# Total number of grains
-		object grains
-	
+	def __init__(self, config):
 
-
-	def __init__(self, dict config):
 		random.seed(config["seed"])
 		np.random.seed(config["seed"])
 
@@ -198,19 +177,18 @@ cdef class World:
 			pg.QtGui.QApplication.processEvents()
 
 	# Runs one timestep for non-zhang
-	cdef step(self):
-		# Type declarations for cython
-		cdef:
-			int lost = 0
-			int crits = 0
-			int added = 0
-			int r, c
+	def step(self):
+		lost = 0
+		crits = 0
+		added = 0
+		r = 0
+		c = 0
 
-			# Bool that tells wether there is anything in the deque
-			bint queue_content = bool(self.crits_stat)
+		# Bool that tells wether there is anything in the deque
+		queue_content = bool(self.crits_stat)
 
-			# Array to keep track of topples
-			cnp.ndarray[cnp.int_t, ndim=2] new_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
+		# Array to keep track of topples
+		new_diff = np.zeros((self.ROWS, self.COLS), dtype=int)
 
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		# This relies on there being content in the crits_stat deque
@@ -250,19 +228,18 @@ cdef class World:
 		return crits, added, lost, new_diff
 
 	# Runs one timestep in zhang mode
-	cdef z_step(self):
-		# Type declarations for cython
-		cdef:
-			float lost = 0
-			int crits = 0
-			int added = 0
-			int r, c
+	def z_step(self):
+		lost = 0
+		crits = 0
+		added = 0
+		r = 0
+		c = 0
 
-			# Bool that tells wether there is anything in the deque
-			bint queue_content = bool(self.crits_stat)
+		# Bool that tells wether there is anything in the deque
+		queue_content = bool(self.crits_stat)
 
-			# Empty array to keep track of topples
-			cnp.ndarray[cnp.float_t, ndim=2] new_diff = np.zeros((self.ROWS, self.COLS), dtype=float)
+		# Empty array to keep track of topples
+		new_diff = np.zeros((self.ROWS, self.COLS), dtype=float)
 
 		# If nothing is critical or the sandpile is defined to be running, place new grains
 		# This relies on there being content in the crits_stat deque
@@ -304,31 +281,27 @@ cdef class World:
 		return crits, added, lost, new_diff
 
 	# Returns number of spots to add grains to
-	cdef grains_to_add(self):
+	def grains_to_add(self):
 		# return np.random.binomial(self.ROWS * self.COLS, self.PROB)
 		return 1
 
 	# Returns number of grains to add at a spot
-	cdef add_per_spot(self):
+	def add_per_spot(self):
 		if self.ZHANG:
 			return random.random() * self.Z_THRESH
 		else:
 			return 1
 
 	# Returns random position to place new grain on (r, c)
-	cdef rand_pos(self):
-		cdef:
-			int r, c
+	def rand_pos(self):
 		r = random.randint(0, self.ROWS - 1)
 		c = random.randint(0, self.COLS - 1)
 		return r, c
 
 	# Function to place grains on non-zhang plane
-	cdef put(self, cnp.ndarray[cnp.int_t, ndim=2] diff, int r, int c):
-		# Type definitions for cython
-		cdef:
-			tuple coords
-			int lost
+	def put(self, diff, r, c):
+		coords = ()
+		lost = 0
 
 		# If coords are outside of plane
 		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
@@ -345,11 +318,8 @@ cdef class World:
 		return lost
 
 	# Function to place grains on zhang plane
-	cdef z_put(self, cnp.ndarray[cnp.float_t, ndim=2] diff, int r, int c, float to_add):
-		# Type definitions for cython
-		cdef:
-			tuple coords
-			float lost
+	def z_put(self, diff, r, c, to_add):
+		lost = 0
 			
 		# If coords are outside of plane
 		if r == -1 or r == self.ROWS or c == -1 or c == self.COLS:
@@ -365,7 +335,7 @@ cdef class World:
 			lost = 0
 		return lost
 
-	cdef bound(self, r, c):
+	def bound(self, r, c):
 		# BOUNDARY CONDITION - if grain is lost, return None. Otherwise, return position to place grain as tuple (r, c)
 		return None
 
