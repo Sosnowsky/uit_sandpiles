@@ -1,13 +1,13 @@
 seed: 666
-columns: 256
-rows: 256
+columns: 32
+rows: 32
 probability: 0.001
 d_probability: 0.00005
 n_runs: 20
-delta_t: 10
+delta_t: 1
 running: False
 input: ''
-zhang: False
+zhang: True
 z_threshold: 1
 z_epsilon: 0.3
 output:

@@ -3,9 +3,9 @@ from scipy.signal import welch
 from definitions import thresholds_gen, n_thresholds
 import numpy as np
 
-datadir = "2048"
+datadir = "1"
 # number of trials to analyse - each with different probability values
-n_files = 4
+n_files = 1
 for i in range(n_files):
 	dur = 0
 	area = 0
@@ -15,7 +15,7 @@ for i in range(n_files):
 	# Load data file and store data in 'crits'
 	with open(f"./data/{datadir}/{i}.d", "r") as raw:
 		for line in tqdm(raw.readlines()[3:], desc=f"loading crits ({i})"):
-			strs = line.rstrip(";\n\r ").split(";")
+			strs = line.rstrip(";\n\r ").split(",")
 			crit = int(strs[0])
 			crits.append(crit)
 
@@ -31,7 +31,7 @@ for i in range(n_files):
 	peaked = [False for j in range(n_thresholds)]
 
 	# Estimate spectral density of 'crits' signal
-	freq, density = welch(crits, nperseg=N / 10000)
+	freq, density = welch(crits)
 
 	# Save spectral density data to file
 	with open(f"./data/{datadir}/{i}.f", "w") as freqfile:

@@ -34,25 +34,20 @@ class World:
 		self.grains_stat = deque(maxlen=10000)
 
 		# Initiate the plane (randomly or from file)
-		self.init_plane()
+		self.init_grid()
 
 		# Initiate grain counter
-		self.grains = sum(self.plane.flatten()) + sum(self.diff.flatten())
+		self.grains = sum(self.grid.flatten()) + sum(self.diff.flatten())
 
 		# Write header to data file if empty
 		with open(self.OUTPUT, "a+") as data_file:
 			data_file.seek(0)
 			if data_file.readline() == "":
 				data_file.seek(0, 2)
-				data_file.write(
-					f"{self.ROWS} rows, {self.COLS} cols, p={self.PROB:.7f}, running={self.RUNNING}, "
-					f"seed={config['seed']}{', zhang' if self.ZHANG else ''}\n"
-				)
-				data_file.write("critical cells; added grains; lost grains; total grains;\n")
-				data_file.write("========================================================\n")
+				data_file.write("critical_cells,added_grains,lost_grains,total_grains\n")
 
-	# Function to initiate plane and diff arrays
-	def init_plane(self):
+	# Function to initiate grid and diff arrays
+	def init_grid(self):
 		dtype = float if self.ZHANG else int
 
 		if self.INPUT == "":  # initiate plane randomly
@@ -65,10 +60,10 @@ class World:
 					return random.randint(0, 3)
 
 			# Initiate plane form said function
-			self.plane = self.from_func(dtype, rng)
+			self.grid = self.from_func(dtype, rng)
 
 		else:  # Initiate plane from file
-			self.plane = self.from_map(dtype)
+			self.grid = self.from_map(dtype)
 		
 		# Initiate diff
 		self.diff = np.zeros((self.ROWS, self.COLS), dtype=dtype)
@@ -140,7 +135,6 @@ class World:
 			im_item = pg.ImageItem()
 			canvas.addItem(im_item)
 			
-
 		rng = range(n)
 		if verbose == 2:
 			# Create progress bar
@@ -155,7 +149,7 @@ class World:
 					crits, added, lost, self.diff = self.step()
 
 				# Write data to file
-				data_file.write(f"{crits};{added};{lost};{self.grains};\n")
+				data_file.write(f"{crits},{added},{lost},{self.grains}\n")
 
 				self.crits_stat.append(crits)
 				if graph:
@@ -170,7 +164,6 @@ class World:
 					# Show new frame of animation
 					self.show_frame(im_item)
 
-
 		self.save_map()
 		if graph or animate:
 			pg_win.close()
@@ -181,8 +174,6 @@ class World:
 		lost = 0
 		crits = 0
 		added = 0
-		r = 0
-		c = 0
 
 		# Bool that tells wether there is anything in the deque
 		queue_content = bool(self.crits_stat)
@@ -211,10 +202,10 @@ class World:
 					if self.diff[r][c] == 0:
 						continue
 					# Add non-empty cell of self.diff to self.plane
-					self.plane[r][c] += self.diff[r][c]
+					self.grid[r][c] += self.diff[r][c]
 
 				# If cell is critical
-				if self.plane[r][c] >= 4:
+				if self.grid[r][c] >= 4:
 					crits += 1
 					new_diff[r][c] -= 4
 					# Remove 4 grains from critcal cell and distribute them among adjacent cells
@@ -262,14 +253,14 @@ class World:
 					if self.diff[r][c] == 0:
 						continue
 					# Add non-empty cell of self.diff to self.plane
-					self.plane[r][c] += self.diff[r][c]
+					self.grid[r][c] += self.diff[r][c]
 
 				# If cell is critical
-				if self.plane[r][c] >= self.Z_THRESH:
+				if self.grid[r][c] >= self.Z_THRESH:
 					crits += 1
-					new_diff[r][c] -= (1 - self.Z_EPSILON) * self.plane[r][c]
+					new_diff[r][c] -= (1 - self.Z_EPSILON) * self.grid[r][c]
 					# Remove grains from critcal cell and distribute them among adjacent cells
-					to_add = (1 - self.Z_EPSILON) * self.plane[r][c] / 4
+					to_add = (1 - self.Z_EPSILON) * self.grid[r][c] / 4
 
 					lost += (
 						self.z_put(new_diff, r - 1, c, to_add)
@@ -362,7 +353,7 @@ class World:
 			levels = (0, self.Z_THRESH)
 		else:
 			levels = (0, 4)
-		im_item.setImage(self.plane, autoLevels=False, levels=levels)
+		im_item.setImage(self.grid, autoLevels=False, levels=levels)
 		pg.QtGui.QApplication.processEvents()
 
 	# Function to save current plane to file
@@ -374,5 +365,5 @@ class World:
 
 	# Returns a generator of strings - each string contains a row of the plane
 	def draw(self):
-		return (';'.join(map(str, cells)) for cells in self.plane)
+		return (';'.join(map(str, cells)) for cells in self.grid)
 
