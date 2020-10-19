@@ -9,8 +9,9 @@ using namespace std;
 using namespace std::chrono;
 
 vector<vector<int>> map;
-const int SIZE = 1000;
-const int STEPS = 5000000;
+const int SIZE = 2048;
+const int STEPS = 2 * 1000 * 1000;
+const int PRE_STEPS = 100 * 1000 * 1000;
 long TOTAL_GRAINS = 0;
 ofstream output;
 
@@ -94,13 +95,13 @@ int main() {
   bool arrived_at_soc = false;
 
   deque<pair<int, int>> crits;
-  for (int t = 0; t < STEPS; t++) {
+  for (int t = 0; t < STEPS + PRE_STEPS; t++) {
     if (!arrived_at_soc and float(TOTAL_GRAINS) / (SIZE * SIZE) > 2.14) {
       cout << "ARRIVED AT SOC!!!!" << endl;
       arrived_at_soc = true;
     }
     if (t % 100000 == 0) cout << "Done " << t << endl;
-    if (arrived_at_soc) SaveData(crits.size());
+    if (arrived_at_soc and t > PRE_STEPS) SaveData(crits.size());
 
     if (crits.empty()) {
       pair<int, int> pos_added = AddGrain();
