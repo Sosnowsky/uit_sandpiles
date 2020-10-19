@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <deque>
 #include <chrono>
 #include <fstream>
 #include <utility>
@@ -8,8 +9,8 @@ using namespace std;
 using namespace std::chrono;
 
 vector<vector<int>> map;
-int current_time = 0;
-int SIZE;
+const int SIZE = 1000;
+const int STEPS = 5000000;
 long TOTAL_GRAINS = 0;
 ofstream output;
 
@@ -43,75 +44,70 @@ void SaveData(int crits) {
   output << crits << "," << TOTAL_GRAINS << endl;
 }
 
-bool CheckCrits() {
+deque<pair<int, int>> Step(deque<pair<int, int>> old_crits) {
   int grains_lost = 0;
-  vector<pair<int, int>> crits_vec;
-  for (int i = 0; i < SIZE; i++) {
-    for (int j = 0; j < SIZE; j++) {
-      if (map[i][j] >= 4) {
-        crits_vec.emplace_back(i, j);
-      }
-    }
-  }
+  deque<pair<int, int>> crits; // Stores the positions of unstable guys
 
-  for (auto &p : crits_vec) {
+  for (auto &p : old_crits) {
     int i = p.first;
     int j = p.second;
 
+    auto propagate = [&](int a, int b) {
+      if (a >= 0 and a < SIZE and b >= 0 and b < SIZE) {
+        if (++map[a][b] == 4) {
+          crits.emplace_back(a, b);
+        }
+      } else
+        ++grains_lost;
+    };
+
+    // Increment and store for all neighbors
     map[i][j] -= 4;
-    if (i + 1 < SIZE)
-      map[i + 1][j]++;
-    else
-      ++grains_lost;
-
-    if (i - 1 >= 0)
-      map[i - 1][j]++;
-    else
-      ++grains_lost;
-
-    if (j + 1 < SIZE)
-      map[i][j + 1]++;
-    else
-      ++grains_lost;
-
-    if (j - 1 >= 0)
-      map[i][j - 1]++;
-    else
-      ++grains_lost;
+    propagate(i + 1, j);
+    propagate(i - 1, j);
+    propagate(i, j + 1);
+    propagate(i, j - 1);
   }
 
-  if (!crits_vec.empty())
-    SaveData(crits_vec.size());
   TOTAL_GRAINS -= grains_lost;
-  return !crits_vec.empty();
+  return crits;
 }
 
-void Step() {
-  current_time++;
-  SaveData(0);
+pair<int, int> AddGrain() {
   int i = rand() % SIZE;
   int j = rand() % SIZE;
   map[i][j]++;
   TOTAL_GRAINS++;
-  while (CheckCrits()) {
-    current_time++;
-    if (current_time % 10000 == 0) {
-      cout << "Done " << current_time << endl;
-    }
-  }
+  return {i, j};
 }
 
 int main() {
   output.open("output.txt");
   output << "critical_cells,total_grains" << endl;
-  SIZE = 1000;
-  int steps = 5000000;
   InitializeMap();
 
   auto start = high_resolution_clock::now();
 
-  while (current_time < steps) {
-    Step();
+  // Used to output data only when we arrived to critical state, we consider that we arrived to critical state
+  // if the average number of grains is over 2.11 per cell (not a very good identification, but good enough to reduce
+  // the length of the time series).
+  bool arrived_at_soc = false;
+
+  deque<pair<int, int>> crits;
+  for (int t = 0; t < STEPS; t++) {
+    if (!arrived_at_soc and float(TOTAL_GRAINS) / (SIZE * SIZE) > 2.14) {
+      cout << "ARRIVED AT SOC!!!!" << endl;
+      arrived_at_soc = true;
+    }
+    if (t % 100000 == 0) cout << "Done " << t << endl;
+    if (arrived_at_soc) SaveData(crits.size());
+
+    if (crits.empty()) {
+      pair<int, int> pos_added = AddGrain();
+      if (map[pos_added.first][pos_added.second] >= 4)
+        crits.emplace_back(pos_added.first, pos_added.second);
+    } else
+      crits = Step(crits);
   }
 
   auto stop = high_resolution_clock::now();
