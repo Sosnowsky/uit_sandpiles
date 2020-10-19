@@ -66,6 +66,8 @@ In the [next analysis step](#blups), five new files are generated; `a_pdf.c`, `d
 
   * `freq.c` has each file's coefficient on a new line
 
+* sandpilesCpp folder contains a simple implementation of the original BTW model in C++, this is required to get longer time series: for a 100x100 grid python does ~300 iterations per second, while C++ does ~25000 iterations per second.
+
 ## API / technical documentation
 
 I don't have a lot of experience with projects of this magnitude, and this may have turned out a liiiittle messy. I hope this documentation can help compensate for this.

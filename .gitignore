@@ -6,8 +6,8 @@ test
 backups
 Profile.prof
 build
-world.c*
 trash
 proclogs
 media
 .idea
+sandpilesCpp/cmake-build-debug
