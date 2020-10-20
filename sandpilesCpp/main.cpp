@@ -2,18 +2,27 @@
 #include <vector>
 #include <deque>
 #include <chrono>
+#include <string>
 #include <fstream>
 #include <utility>
+#include <boost/program_options.hpp>
 
 using namespace std;
 using namespace std::chrono;
+using namespace boost::program_options;
 
-vector<vector<int>> map;
+vector<vector<int>> grid;
 const int SIZE = 2048;
-const int STEPS = 2 * 1000 * 1000;
-const int PRE_STEPS = 100 * 1000 * 1000;
+const int STEPS = 200 * 1000 * 1000;
+const int PRE_STEPS = 20 * 1000 * 1000;
 long TOTAL_GRAINS = 0;
 ofstream output;
+ofstream stats;
+
+int treshold = 63;
+long durations = 0;
+long area = 0;
+long quiet = 0;
 
 void InitializeMap() {
   for (int i = 0; i < SIZE; i++) {
@@ -27,12 +36,27 @@ void InitializeMap() {
       TOTAL_GRAINS += amount;
       row.push_back(amount);
     }
-    map.push_back(row);
+    grid.push_back(row);
+  }
+}
+
+void CheckStatsAndWriteIfNecessary(long crits) {
+  if (crits > treshold) {
+    if (quiet != 0) {
+      stats << durations << "," << area << "," << quiet << endl;
+      quiet = 0;
+      durations = 0;
+      area = 0;
+    }
+    durations++;
+    area += crits;
+  } else {
+    quiet++;
   }
 }
 
 void PrintMap() {
-  for (auto &i : map) {
+  for (auto &i : grid) {
     for (int j : i) {
       cout << j << " ";
     }
@@ -55,7 +79,7 @@ deque<pair<int, int>> Step(deque<pair<int, int>> old_crits) {
 
     auto propagate = [&](int a, int b) {
       if (a >= 0 and a < SIZE and b >= 0 and b < SIZE) {
-        if (++map[a][b] == 4) {
+        if (++grid[a][b] == 4) {
           crits.emplace_back(a, b);
         }
       } else
@@ -63,7 +87,7 @@ deque<pair<int, int>> Step(deque<pair<int, int>> old_crits) {
     };
 
     // Increment and store for all neighbors
-    map[i][j] -= 4;
+    grid[i][j] -= 4;
     propagate(i + 1, j);
     propagate(i - 1, j);
     propagate(i, j + 1);
@@ -77,14 +101,35 @@ deque<pair<int, int>> Step(deque<pair<int, int>> old_crits) {
 pair<int, int> AddGrain() {
   int i = rand() % SIZE;
   int j = rand() % SIZE;
-  map[i][j]++;
+  grid[i][j]++;
   TOTAL_GRAINS++;
   return {i, j};
 }
 
-int main() {
+int main(int ac, char *av[]) {
+  /**
+  options_description desc("Allowed options");
+  desc.add_options()
+      ("help,h", "print usage message")
+      ("grid_size,L", value<int>()->default_value(1024), "the size of the  grid")
+      ("pre_steps,p", value<int>()->default_value(0), "number of steps run before writing output")
+      ("steps,p", value<int>()->default_value(10000), "number of steps run writing output")
+      ("output,o", value<string>()->default_value("output.txt"), "output file")
+      ("stats,s", value<string>()->default_value("stats.txt"), "stats file");
+
+  variables_map vm;
+  store(parse_command_line(ac, av, desc), vm);
+
+  if (vm.count("help")) {
+    cout << desc << "\n";
+    return 0;
+  }
+   */
+
   output.open("output.txt");
+  stats.open("stats.txt");
   output << "critical_cells,total_grains" << endl;
+  stats << "duration,area,quiet" << endl;
   InitializeMap();
 
   auto start = high_resolution_clock::now();
@@ -95,26 +140,31 @@ int main() {
   bool arrived_at_soc = false;
 
   deque<pair<int, int>> crits;
+
   for (int t = 0; t < STEPS + PRE_STEPS; t++) {
     if (!arrived_at_soc and float(TOTAL_GRAINS) / (SIZE * SIZE) > 2.14) {
       cout << "ARRIVED AT SOC!!!!" << endl;
       arrived_at_soc = true;
     }
     if (t % 100000 == 0) cout << "Done " << t << endl;
-    if (arrived_at_soc and t > PRE_STEPS) SaveData(crits.size());
 
     if (crits.empty()) {
       pair<int, int> pos_added = AddGrain();
-      if (map[pos_added.first][pos_added.second] >= 4)
+      if (grid[pos_added.first][pos_added.second] >= 4)
         crits.emplace_back(pos_added.first, pos_added.second);
     } else
       crits = Step(crits);
+
+    if (arrived_at_soc and t > PRE_STEPS) {
+      SaveData(crits.size());
+      CheckStatsAndWriteIfNecessary(crits.size());
+    }
   }
 
   auto stop = high_resolution_clock::now();
-  auto duration = duration_cast<microseconds>(stop - start);
+  auto run_duration = duration_cast<microseconds>(stop - start);
 
-  cout << "Time: " << duration.count() << " us" << endl;
+  cout << "Total time: " << run_duration.count() << " us" << endl;
 
   return 0;
 }
