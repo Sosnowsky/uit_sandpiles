@@ -13,3 +13,4 @@ media
 sandpilesCpp/cmake-build-debug
 env
 .ipynb_checkpoints
+*.out

@@ -1,9 +1,0 @@
-PyYAML
-matplotlib
-tqdm
-pyqtgraph
-PyQt5
-numpy
-cython
-more-itertools
-scipy

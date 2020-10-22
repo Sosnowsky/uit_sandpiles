@@ -5,16 +5,16 @@
 #include <string>
 #include <fstream>
 #include <utility>
-#include <boost/program_options.hpp>
+//#include <boost/program_options.hpp>
 
 using namespace std;
 using namespace std::chrono;
-using namespace boost::program_options;
+//using namespace boost::program_options;
 
 vector<vector<int>> grid;
-const int SIZE = 2048;
-const int STEPS = 200 * 1000 * 1000;
-const int PRE_STEPS = 20 * 1000 * 1000;
+const int SIZE = 50;
+const int STEPS = 10 * 1000 * 1000;
+const int PRE_STEPS = 1 * 1000 * 1000;
 long TOTAL_GRAINS = 0;
 ofstream output;
 ofstream stats;
@@ -137,7 +137,7 @@ int main(int ac, char *av[]) {
   // Used to output data only when we arrived to critical state, we consider that we arrived to critical state
   // if the average number of grains is over 2.11 per cell (not a very good identification, but good enough to reduce
   // the length of the time series).
-  bool arrived_at_soc = false;
+  bool arrived_at_soc = true;
 
   deque<pair<int, int>> crits;
 
