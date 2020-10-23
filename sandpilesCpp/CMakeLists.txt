@@ -3,4 +3,4 @@ project(sandpilesCpp)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(sandpilesCpp main.cpp)
+add_executable(sandpilesCpp Simulator.cpp BTWModel.h BTWModel.cpp)
