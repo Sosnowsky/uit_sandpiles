@@ -43,10 +43,16 @@ void BTWModel::Run(int pre_steps, int steps) {
 
   for (int t = 0; t < steps + pre_steps; t++) {
     if (!arrived_at_soc and
-        float(m_total_grains) / float(m_size * m_size) > 2.14)
+        float(m_total_grains) / float(m_size * m_size) > 2.125) {
       arrived_at_soc = true;
+      std::cout << "Arrived at critical density 2.125 at step: " << t
+                << std::endl;
+    }
 
-    if (t % 100000 == 0) std::cout << "Done " << t << std::endl;
+    if (t % 1000000 == 0) {
+      float perc = float(t) / float(steps + pre_steps) * 100;
+      std::cout << "Done " << perc << "%" << std::endl;
+    }
 
     if (crits.empty()) {
       std::pair<int, int> pos_added = AddGrain();
@@ -55,7 +61,7 @@ void BTWModel::Run(int pre_steps, int steps) {
     } else
       crits = Step(crits);
 
-    if (arrived_at_soc and t > pre_steps) {
+    if (t > pre_steps) {
       SaveData(crits.size());
       CheckStatsAndWriteIfNecessary(crits.size());
     }

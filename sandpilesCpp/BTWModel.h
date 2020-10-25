@@ -22,20 +22,33 @@ class BTWModel {
    * @param stats_filename
    */
   BTWModel(std::string output_filename, std::string stats_filename, int size);
+
+  /**
+   * Initializes the grid randomly.
+   */
   void InitializeMap();
+
+  /**
+   * Runs the model for (pre_steps + steps) steps, without writing the data for
+   * the first pre_steps steps (in order to avoid writing data before reaching
+   * SOC).
+   * TODO: Drop pre_steps argument by detecting criticality automatically
+   * (simplest is to reach state with approximately constant number of total
+   * grains).
+   * @param pre_steps
+   * @param steps
+   */
   void Run(int pre_steps, int steps);
-  void CheckStatsAndWriteIfNecessary(long crits);
+
+  /**
+   * Prints the grid data in std output. Only used for debug/dev.
+   */
   void PrintMap();
-  void SaveData(int crits);
-  std::deque<std::pair<int, int>> Step(
-      std::deque<std::pair<int, int>> old_crits);
   std::pair<int, int> AddGrain();
 
  private:
   std::vector<std::vector<int>> m_grid;
   const int m_size = 2048;
-  const int m_steps = 200 * 1000 * 1000;
-  const int m_pre_steps = 20 * 1000 * 1000;
   long m_total_grains = 0;
   std::ofstream m_output;
   std::ofstream m_stats;
@@ -44,4 +57,9 @@ class BTWModel {
   long m_durations = 0;
   long m_area = 0;
   long m_quiet = 0;
+
+  void CheckStatsAndWriteIfNecessary(long crits);
+  void SaveData(int crits);
+  std::deque<std::pair<int, int>> Step(
+      std::deque<std::pair<int, int>> old_crits);
 };
