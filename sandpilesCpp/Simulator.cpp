@@ -17,6 +17,8 @@ int main(int ac, char *av[]) {
       "number of steps run before writing output")(
       "steps,s", value<int>()->default_value(10000),
       "number of steps run writing output")(
+      "frequency,f", value<double>()->default_value(-1),
+      "frequency of added grains from running model")(
       "output,o", value<string>()->default_value("output.txt"), "output file")(
       "stats", value<string>()->default_value("stats.txt"), "stats file");
 
@@ -31,6 +33,7 @@ int main(int ac, char *av[]) {
   int size = vm["grid_size"].as<int>();
   int pre_steps = vm["pre_steps"].as<int>();
   int steps = vm["steps"].as<int>();
+  double frequency_grains = vm["frequency"].as<double>();
   string output = vm["output"].as<string>();
   string stats = vm["stats"].as<string>();
   unique_ptr<BTWModel> model =
@@ -39,7 +42,7 @@ int main(int ac, char *av[]) {
   model->InitializeMap();
   auto start = high_resolution_clock::now();
 
-  model->Run(pre_steps, steps);
+  model->Run(pre_steps, steps, frequency_grains);
 
   auto stop = high_resolution_clock::now();
   auto run_duration = duration_cast<microseconds>(stop - start);

@@ -35,10 +35,14 @@ class BTWModel {
    * TODO: Drop pre_steps argument by detecting criticality automatically
    * (simplest is to reach state with approximately constant number of total
    * grains).
-   * @param pre_steps
-   * @param steps
+   * @param pre_steps Number of steps run without writing data.
+   * @param steps Number of steps run writing data.
+   * @param frequency_grains How often should grains be added on average. If set
+   * to -1, it runs the classical slow driven model, for 1 > frequency_grains >
+   * 0, (steps * frequency_grains) grains will be added at uniformly randomly
+   * distributed times after pre_steps have been run.
    */
-  void Run(int pre_steps, int steps);
+  void Run(int pre_steps, int steps, double frequency_grains);
 
   /**
    * Prints the grid data in std output. Only used for debug/dev.
@@ -62,4 +66,14 @@ class BTWModel {
   void SaveData(int crits);
   std::deque<std::pair<int, int>> Step(
       std::deque<std::pair<int, int>> old_crits);
+
+  /**
+   * Runs the infinitely slowly driven model.
+   */
+  void RunClassical(int pre_steps, int steps, bool print = true);
+
+  /**
+   * Runs the running model.
+   */
+  void RunRunning(int pre_steps, int steps, double frequency_grains);
 };

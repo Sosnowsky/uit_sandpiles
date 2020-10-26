@@ -1,6 +1,8 @@
 #include "BTWModel.h"
+#include <algorithm>
 #include <deque>
 #include <iostream>
+#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -37,10 +39,58 @@ void BTWModel::InitializeMap() {
  * @param pre_steps
  * @param steps
  */
-void BTWModel::Run(int pre_steps, int steps) {
-  bool arrived_at_soc = false;
+void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
+  if (frequency_grains < 0) return RunClassical(pre_steps, steps);
+  if (frequency_grains > 1) {
+    std::cout << "ERROR: Frequency should be <= 1" << std::endl;
+    return;
+  }
+  RunClassical(pre_steps, 0, false);
+
+  int total_grains_to_add = int(steps * frequency_grains);
+  std::vector<int> add_grain_times;
+
+  std::default_random_engine generator;
+  std::uniform_int_distribution<int> distribution(0, steps);
+
+  for (int i = 0; i < total_grains_to_add; i++) {
+    add_grain_times.push_back(distribution(generator));
+  }
+
+  std::sort(add_grain_times.begin(), add_grain_times.end(), std::less<>());
+
+  int t = 0;
+  int grain_inx = 0;
   std::deque<std::pair<int, int>> crits;
 
+  auto update = [&]() {
+    crits = Step(crits);
+    t++;
+    SaveData(crits.size());
+    CheckStatsAndWriteIfNecessary(crits.size());
+
+    if (t % 1000000 == 0) {
+      float perc = float(t) / float(steps + pre_steps) * 100;
+      std::cout << "Done " << perc << "%" << std::endl;
+    }
+  };
+
+  while (grain_inx < add_grain_times.size()) {
+    while (t < add_grain_times[grain_inx]) update();
+
+    // Time to add a grain
+    std::pair<int, int> pos_added = AddGrain();
+    if (m_grid[pos_added.first][pos_added.second] >= 4)
+      crits.emplace_back(pos_added.first, pos_added.second);
+    grain_inx++;
+  }
+
+  while (t < steps) update();
+}
+
+void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
+  bool arrived_at_soc = false;
+  std::deque<std::pair<int, int>> crits;
   for (int t = 0; t < steps + pre_steps; t++) {
     if (!arrived_at_soc and
         float(m_total_grains) / float(m_size * m_size) > 2.125) {
@@ -49,7 +99,7 @@ void BTWModel::Run(int pre_steps, int steps) {
                 << std::endl;
     }
 
-    if (t % 1000000 == 0) {
+    if (t % 1000000 == 0 && print) {
       float perc = float(t) / float(steps + pre_steps) * 100;
       std::cout << "Done " << perc << "%" << std::endl;
     }
