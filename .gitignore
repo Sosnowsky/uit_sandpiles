@@ -1,11 +1,5 @@
-data
 __pycache__
 .vscode
-config.yml
-test
-backups
-Profile.prof
-build
 trash
 proclogs
 media
