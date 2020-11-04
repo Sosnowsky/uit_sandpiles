@@ -10,7 +10,7 @@ trash
 proclogs
 media
 .idea
-sandpilesCpp/cmake-build-debug
+cmake-build-debug
 env
 .ipynb_checkpoints
 *.out
