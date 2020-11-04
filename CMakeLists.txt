@@ -1,15 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.17)
 
 project(btwsim)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_BINARY_DIR  build)
 
 FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
-if(Boost_FOUND)
-    include_directories(${Boost_INCLUDE_DIR})
-    message("-- Boost found: ${Boost_VERSION_STRING}")
-else()
-    message(FATAL_ERROR "Boost not found!")
-endif()
+include_directories(${Boost_INCLUDE_DIR})
 include_directories(src)
 
 add_subdirectory(src)
