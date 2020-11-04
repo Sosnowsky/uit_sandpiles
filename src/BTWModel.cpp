@@ -61,13 +61,12 @@ void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
 
   int t = 0;
   int grain_inx = 0;
-  std::deque<std::pair<int, int>> crits;
 
   auto update = [&]() {
-    crits = Step(crits);
+    Step();
     t++;
-    SaveData(crits.size());
-    CheckStatsAndWriteIfNecessary(crits.size());
+    SaveData();
+    CheckStatsAndWriteIfNecessary();
 
     if (t % 1000000 == 0) {
       float perc = float(t) / float(steps + pre_steps) * 100;
@@ -81,7 +80,7 @@ void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
     // Time to add a grain
     std::pair<int, int> pos_added = AddGrain();
     if (m_grid[pos_added.first][pos_added.second] >= 4)
-      crits.emplace_back(pos_added.first, pos_added.second);
+      m_criticals.emplace_back(pos_added.first, pos_added.second);
     grain_inx++;
   }
 
@@ -90,7 +89,6 @@ void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
 
 void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
   bool arrived_at_soc = false;
-  std::deque<std::pair<int, int>> crits;
   for (int t = 0; t < steps + pre_steps; t++) {
     if (!arrived_at_soc and
         float(m_total_grains) / float(m_size * m_size) > 2.125) {
@@ -104,22 +102,22 @@ void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
       std::cout << "Done " << perc << "%" << std::endl;
     }
 
-    if (crits.empty()) {
+    if (m_criticals.empty()) {
       std::pair<int, int> pos_added = AddGrain();
       if (m_grid[pos_added.first][pos_added.second] >= 4)
-        crits.emplace_back(pos_added.first, pos_added.second);
+        m_criticals.emplace_back(pos_added.first, pos_added.second);
     } else
-      crits = Step(crits);
+      Step();
 
     if (t > pre_steps) {
-      SaveData(crits.size());
-      CheckStatsAndWriteIfNecessary(crits.size());
+      SaveData();
+      CheckStatsAndWriteIfNecessary();
     }
   }
 }
 
-void BTWModel::CheckStatsAndWriteIfNecessary(long crits) {
-  if (crits > m_treshold) {
+void BTWModel::CheckStatsAndWriteIfNecessary() {
+  if (m_criticals.size() > m_treshold) {
     if (m_quiet != 0) {
       m_stats << m_durations << "," << m_area << "," << m_quiet << std::endl;
       m_quiet = 0;
@@ -127,7 +125,7 @@ void BTWModel::CheckStatsAndWriteIfNecessary(long crits) {
       m_area = 0;
     }
     m_durations++;
-    m_area += crits;
+    m_area += m_criticals.size();
   } else {
     m_quiet++;
   }
@@ -143,24 +141,23 @@ void BTWModel::PrintMap() {
   std::cout << std::endl;
 }
 
-void BTWModel::SaveData(int crits) {
-  m_output << crits << "," << m_total_grains << std::endl;
+void BTWModel::SaveData() {
+  m_output << m_criticals.size() << "," << m_total_grains << std::endl;
 }
 
-std::deque<std::pair<int, int>> BTWModel::Step(
-    std::deque<std::pair<int, int>> old_crits) {
+void BTWModel::Step() {
   int grains_lost = 0;
   std::deque<std::pair<int, int>>
-      crits;  // Stores the positions of unstable guys
+      new_crits;  // Stores the positions of unstable guys
 
-  for (auto &p : old_crits) {
+  for (auto &p : m_criticals) {
     int i = p.first;
     int j = p.second;
 
     auto propagate = [&](int a, int b) {
       if (a >= 0 and a < m_size and b >= 0 and b < m_size) {
         if (++m_grid[a][b] == 4) {
-          crits.emplace_back(a, b);
+          new_crits.emplace_back(a, b);
         }
       } else
         ++grains_lost;
@@ -175,7 +172,7 @@ std::deque<std::pair<int, int>> BTWModel::Step(
   }
 
   m_total_grains -= grains_lost;
-  return crits;
+  m_criticals = new_crits;
 }
 
 std::pair<int, int> BTWModel::AddGrain() {
@@ -187,5 +184,5 @@ std::pair<int, int> BTWModel::AddGrain() {
 }
 
 int BTWModel::GetCriticalSites() {
-  return m_size;
+  return m_criticals.size();
 }

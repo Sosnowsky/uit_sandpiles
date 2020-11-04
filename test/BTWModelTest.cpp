@@ -9,9 +9,8 @@ class BTWModelTest : public ::testing::Test {
   BTWModel model = BTWModel("", "", 50);
 };
 
-TEST_F(BTWModelTest, ConvertsCharToUpperCaseString) {
-  std::cout <<" lol " << std::endl;
-  ASSERT_EQ(model.GetCriticalSites(), 50);
+TEST_F(BTWModelTest, CriticalSitesAtStart) {
+  ASSERT_EQ(model.GetCriticalSites(), 0);
 }
 
 int main(int argc, char **argv) {

@@ -1,7 +1,11 @@
-#ifndef SANDPILESCPP__BTWMODEL_H_
-#define SANDPILESCPP__BTWMODEL_H_
+//
+// Created by sosnovsky on 11/4/20.
+//
 
-#endif  // SANDPILESCPP__BTWMODEL_H_
+#ifndef BTWSIM_SRC_FORESTFIREMODEL_H_
+#define BTWSIM_SRC_FORESTFIREMODEL_H_
+
+#endif //BTWSIM_SRC_FORESTFIREMODEL_H_
 
 #include <chrono>
 #include <deque>
@@ -11,7 +15,9 @@
 #include <utility>
 #include <vector>
 
-class BTWModel {
+enum first_state { empty, tree, burning };
+
+class ForestFireModel {
  public:
   /**
    * Initializes a grid of size {@link size} (number of sites given by sites ^
@@ -21,7 +27,7 @@ class BTWModel {
    * @param output_filename
    * @param stats_filename
    */
-  BTWModel(std::string output_filename, std::string stats_filename, int size);
+  ForestFireModel(std::string output_filename, std::string stats_filename, int size);
 
   /**
    * Initializes the grid randomly.
@@ -29,20 +35,14 @@ class BTWModel {
   void InitializeMap();
 
   /**
-   * Runs the model for (pre_steps + steps) steps, without writing the data for
+   * Runs the forest fire model for (pre_steps + steps) steps, without writing the data for
    * the first pre_steps steps (in order to avoid writing data before reaching
-   * SOC).
-   * TODO: Drop pre_steps argument by detecting criticality automatically
-   * (simplest is to reach state with approximately constant number of total
-   * grains).
+   * SOC). Implements the model described in :
+   * https://en.wikipedia.org/wiki/Forest-fire_model
    * @param pre_steps Number of steps run without writing data.
    * @param steps Number of steps run writing data.
-   * @param frequency_grains How often should grains be added on average. If set
-   * to -1, it runs the classical slow driven model, for 1 > frequency_grains >
-   * 0, (steps * frequency_grains) grains will be added at uniformly randomly
-   * distributed times after pre_steps have been run.
    */
-  void Run(int pre_steps, int steps, double frequency_grains);
+  void Run(int pre_steps, int steps, double fire_probability, double grow_probability);
 
   /**
    * Prints the grid data in std output. Only used for debug/dev.

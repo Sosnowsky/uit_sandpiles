@@ -7,7 +7,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 set(BINARY ${CMAKE_PROJECT_NAME})
 set(SOURCES Simulator.cpp BTWModel.h BTWModel.cpp)
 
-add_executable(btwsim ${SOURCES})
+add_executable(btwsim ${SOURCES} ForestFireModel.cpp ForestFireModel.h)
 
 add_library(${BINARY}_lib STATIC ${SOURCES})
 target_link_libraries (${BINARY} ${Boost_LIBRARIES})
