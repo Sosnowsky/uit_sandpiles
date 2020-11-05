@@ -5,7 +5,7 @@
 #ifndef BTWSIM_SRC_FORESTFIREMODEL_H_
 #define BTWSIM_SRC_FORESTFIREMODEL_H_
 
-#endif //BTWSIM_SRC_FORESTFIREMODEL_H_
+#endif  // BTWSIM_SRC_FORESTFIREMODEL_H_
 
 #include <chrono>
 #include <deque>
@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-enum first_state { empty, tree, burning };
+enum site_state { empty, tree, burning };
 
 class ForestFireModel {
  public:
@@ -27,7 +27,7 @@ class ForestFireModel {
    * @param output_filename
    * @param stats_filename
    */
-  ForestFireModel(std::string output_filename, std::string stats_filename, int size);
+  ForestFireModel(std::string output_filename, int size);
 
   /**
    * Initializes the grid randomly.
@@ -35,46 +35,36 @@ class ForestFireModel {
   void InitializeMap();
 
   /**
-   * Runs the forest fire model for (pre_steps + steps) steps, without writing the data for
-   * the first pre_steps steps (in order to avoid writing data before reaching
-   * SOC). Implements the model described in :
-   * https://en.wikipedia.org/wiki/Forest-fire_model
+   * Runs the forest fire model for steps steps implements the model described
+   * in : https://en.wikipedia.org/wiki/Forest-fire_model With some
+   * modifications to make it run faster: each timestamp
+   * grow_trees_per_time_step sites are chosen randomly, if they are empty, a
+   * new tree is grown. Each timestamp, with probability fire_probability, a
+   * site is chosen randomly, if it is a tree, it is set on fire.
    * @param pre_steps Number of steps run without writing data.
    * @param steps Number of steps run writing data.
    */
-  void Run(int pre_steps, int steps, double fire_probability, double grow_probability);
+  void Run(int steps, double fire_probability, int grow_trees_per_time_step);
 
+  int GetBurningTrees() const;
+  int GetTrees() const;
+
+  std::vector<std::vector<site_state>> &GetMap();
   /**
    * Prints the grid data in std output. Only used for debug/dev.
    */
   void PrintMap();
-  std::pair<int, int> AddGrain();
-  int GetCriticalSites();
 
  private:
-  std::vector<std::vector<int>> m_grid;
-  std::deque<std::pair<int, int>> m_criticals;
+  std::vector<std::vector<site_state>> m_grid;
   const int m_size;
-  long m_total_grains = 0;
+  int m_trees;
+  std::deque<std::pair<int, int>> m_burning_tree_pos;
   std::ofstream m_output;
   std::ofstream m_stats;
 
-  int m_treshold = 63;
-  long m_durations = 0;
-  long m_area = 0;
-  long m_quiet = 0;
-
-  void CheckStatsAndWriteIfNecessary();
   void SaveData();
   void Step();
-
-  /**
-   * Runs the infinitely slowly driven model.
-   */
-  void RunClassical(int pre_steps, int steps, bool print = true);
-
-  /**
-   * Runs the running model.
-   */
-  void RunRunning(int pre_steps, int steps, double frequency_grains);
+  void SetTreeOnFire();
+  void GrowTree();
 };

@@ -1,1 +1,3 @@
-Small c++ implementation of the BTW model
+Small c++ implementation of some cellular automata models exhibiting self organized criticality.
+
+Requirements: Boost program options,  

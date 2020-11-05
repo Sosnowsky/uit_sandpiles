@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include "BTWModel.h"
+#include "ForestFireModel.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -13,14 +14,20 @@ int main(int ac, char *av[]) {
   options_description desc("Allowed options");
   desc.add_options()("help,h", "print usage message")(
       "grid_size,L", value<int>()->default_value(1024), "the size of the grid")(
+      "model,M", value<string>()->default_value("btw"),
+      "Model to run, possible values btw, ff")(
       "pre_steps,p", value<int>()->default_value(0),
-      "number of steps run before writing output")(
+      "number of steps run before writing output. Used in btw model")(
+      "param1,A", value<int>()->default_value(0),
+      "Used in the forest fire model to specify grow_trees_per_time_step")(
       "steps,s", value<int>()->default_value(10000),
-      "number of steps run writing output")(
+      "number of steps run writing output. Used in all models")(
       "frequency,f", value<double>()->default_value(-1),
-      "frequency of added grains from running model")(
-      "output,o", value<string>()->default_value("output.txt"), "output file")(
-      "stats", value<string>()->default_value("stats.txt"), "stats file");
+      "frequency of added grains from running model. Used in btw model.")(
+      "output,o", value<string>()->default_value("output.txt"),
+      "output file for main timeseries. Used in all models")(
+      "stats", value<string>()->default_value("stats.txt"),
+      "stats file. Not used.");
 
   variables_map vm;
   store(parse_command_line(ac, av, desc), vm);
@@ -30,24 +37,37 @@ int main(int ac, char *av[]) {
     return 0;
   }
 
+  string model_to_run = vm["model"].as<string>();
+
   int size = vm["grid_size"].as<int>();
   int pre_steps = vm["pre_steps"].as<int>();
   int steps = vm["steps"].as<int>();
+  int param1 = vm["param1"].as<int>();
   double frequency_grains = vm["frequency"].as<double>();
   string output = vm["output"].as<string>();
   string stats = vm["stats"].as<string>();
-  unique_ptr<BTWModel> model =
-      std::make_unique<BTWModel>(BTWModel(output, stats, size));
 
-  model->InitializeMap();
-  auto start = high_resolution_clock::now();
+  if (model_to_run == "btw") {
+    unique_ptr<BTWModel> model =
+        std::make_unique<BTWModel>(BTWModel(output, stats, size));
 
-  model->Run(pre_steps, steps, frequency_grains);
+    model->InitializeMap();
+    auto start = high_resolution_clock::now();
 
-  auto stop = high_resolution_clock::now();
-  auto run_duration = duration_cast<microseconds>(stop - start);
+    model->Run(pre_steps, steps, frequency_grains);
 
-  cout << "Total time: " << run_duration.count() << " us" << endl;
+    auto stop = high_resolution_clock::now();
+    auto run_duration = duration_cast<microseconds>(stop - start);
+
+    cout << "Total time: " << run_duration.count() << " us" << endl;
+  }
+  if (model_to_run == "ff") {
+    unique_ptr<ForestFireModel> model =
+        std::make_unique<ForestFireModel>(ForestFireModel(output, size));
+    model->InitializeMap();
+
+    model->Run(steps, frequency_grains, param1);
+  }
 
   return 0;
 }

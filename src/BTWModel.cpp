@@ -183,6 +183,4 @@ std::pair<int, int> BTWModel::AddGrain() {
   return {i, j};
 }
 
-int BTWModel::GetCriticalSites() {
-  return m_criticals.size();
-}
+int BTWModel::GetCriticalSites() { return m_criticals.size(); }

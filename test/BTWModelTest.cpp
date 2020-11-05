@@ -5,6 +5,7 @@ class BTWModelTest : public ::testing::Test {
  protected:
   BTWModelTest() = default;
   ~BTWModelTest() override = default;
+
  public:
   BTWModel model = BTWModel("", "", 50);
 };
