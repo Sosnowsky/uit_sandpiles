@@ -10,6 +10,7 @@ env
 *.out
 *.cbp
 *.a
+build
 
 
 # Cmake stuff
