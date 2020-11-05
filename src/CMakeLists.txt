@@ -1,11 +1,10 @@
 set(CMAKE_CXX_STANDARD 20)
-set(UNIT_TESTS test/BTWModelTest.cpp)
 set(BINARY ${CMAKE_PROJECT_NAME})
 
 include_directories(${Boost_INCLUDE_DIRS})
 
 set(BINARY ${CMAKE_PROJECT_NAME})
-set(SOURCES Simulator.cpp BTWModel.h BTWModel.cpp ForestFireModel.cpp ForestFireModel.h ModelUtils.cpp ModelUtils.h)
+set(SOURCES Simulator.cpp BTWModel.h BTWModel.cpp ForestFireModel.cpp ForestFireModel.h ModelUtils.cpp ModelUtils.h BTW3dModel.h BTW3dModel.cpp)
 
 add_executable(btwsim ${SOURCES})
 

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include "BTW3dModel.h"
 #include "BTWModel.h"
 #include "ForestFireModel.h"
 
@@ -15,7 +16,7 @@ int main(int ac, char *av[]) {
   desc.add_options()("help,h", "print usage message")(
       "grid_size,L", value<int>()->default_value(1024), "the size of the grid")(
       "model,M", value<string>()->default_value("btw"),
-      "Model to run, possible values btw, ff")(
+      "Model to run, possible values btw, ff, btw3d")(
       "pre_steps,p", value<int>()->default_value(0),
       "number of steps run before writing output. Used in btw model")(
       "param1,A", value<int>()->default_value(0),
@@ -67,6 +68,20 @@ int main(int ac, char *av[]) {
     model->InitializeMap();
 
     model->Run(steps, frequency_grains, param1);
+  }
+  if (model_to_run == "btw3d") {
+    unique_ptr<BTW3dModel> model =
+        std::make_unique<BTW3dModel>(BTW3dModel(output, size));
+
+    model->InitializeMap();
+    auto start = high_resolution_clock::now();
+
+    model->Run(pre_steps, steps, frequency_grains);
+
+    auto stop = high_resolution_clock::now();
+    auto run_duration = duration_cast<microseconds>(stop - start);
+
+    cout << "Total time: " << run_duration.count() << " us" << endl;
   }
 
   return 0;
