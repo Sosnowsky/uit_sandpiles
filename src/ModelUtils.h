@@ -15,4 +15,9 @@ class ModelUtils {
    * Used to get random point in a grid. Return value is in [0, maxint].
    */
   static int GetRandomInt();
+
+  /**
+   * Get random int -1 or 1
+   */
+  static int GetRandomNeighbor();
 };

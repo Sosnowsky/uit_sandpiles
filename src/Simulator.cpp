@@ -20,7 +20,8 @@ int main(int ac, char *av[]) {
       "pre_steps,p", value<int>()->default_value(0),
       "number of steps run before writing output. Used in btw model")(
       "param1,A", value<int>()->default_value(0),
-      "Used in the forest fire model to specify grow_trees_per_time_step")(
+      "Used in the forest fire model to specify grow_trees_per_time_step. In "
+      "the btw model, it specifies the mode of the model")(
       "steps,s", value<int>()->default_value(10000),
       "number of steps run writing output. Used in all models")(
       "frequency,f", value<double>()->default_value(-1),
@@ -55,7 +56,7 @@ int main(int ac, char *av[]) {
     model->InitializeMap();
     auto start = high_resolution_clock::now();
 
-    model->Run(pre_steps, steps, frequency_grains);
+    model->Run(pre_steps, steps, frequency_grains, BTWModel::Mode(param1));
 
     auto stop = high_resolution_clock::now();
     auto run_duration = duration_cast<microseconds>(stop - start);

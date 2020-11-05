@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "ModelUtils.h"
 
 BTWModel::BTWModel(std::string output_filename, std::string stats_filename,
                    int size)
@@ -39,13 +40,14 @@ void BTWModel::InitializeMap() {
  * @param pre_steps
  * @param steps
  */
-void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
+void BTWModel::Run(int pre_steps, int steps, double frequency_grains,
+                   Mode mode) {
   if (frequency_grains < 0) return RunClassical(pre_steps, steps);
   if (frequency_grains > 1) {
     std::cout << "ERROR: Frequency should be <= 1" << std::endl;
     return;
   }
-  RunClassical(pre_steps, 0, false);
+  RunClassical(pre_steps, 0, true);
 
   int total_grains_to_add = int(steps * frequency_grains);
   std::vector<int> add_grain_times;
@@ -63,7 +65,7 @@ void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
   int grain_inx = 0;
 
   auto update = [&]() {
-    Step();
+    Step(mode);
     t++;
     SaveData();
     CheckStatsAndWriteIfNecessary();
@@ -99,7 +101,7 @@ void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
 
     if (t % 1000000 == 0 && print) {
       float perc = float(t) / float(steps + pre_steps) * 100;
-      std::cout << "Done " << perc << "%" << std::endl;
+      std::cout << "Done " << perc << "% total " << m_total_grains << std::endl;
     }
 
     if (m_criticals.empty()) {
@@ -107,7 +109,7 @@ void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
       if (m_grid[pos_added.first][pos_added.second] >= 4)
         m_criticals.emplace_back(pos_added.first, pos_added.second);
     } else
-      Step();
+      Step(Mode::classical);
 
     if (t > pre_steps) {
       SaveData();
@@ -145,34 +147,76 @@ void BTWModel::SaveData() {
   m_output << m_criticals.size() << "," << m_total_grains << std::endl;
 }
 
-void BTWModel::Step() {
-  int grains_lost = 0;
+void BTWModel::Step(Mode mode) {
   std::deque<std::pair<int, int>>
       new_crits;  // Stores the positions of unstable guys
 
   for (auto &p : m_criticals) {
-    int i = p.first;
-    int j = p.second;
-
-    auto propagate = [&](int a, int b) {
-      if (a >= 0 and a < m_size and b >= 0 and b < m_size) {
-        if (++m_grid[a][b] == 4) {
-          new_crits.emplace_back(a, b);
-        }
-      } else
-        ++grains_lost;
-    };
-
-    // Increment and store for all neighbors
-    m_grid[i][j] -= 4;
-    propagate(i + 1, j);
-    propagate(i - 1, j);
-    propagate(i, j + 1);
-    propagate(i, j - 1);
+    switch (mode) {
+      case random_2:
+        Evolve1(new_crits, p);
+        break;
+      case classical:
+        EvolveClassical(new_crits, p);
+        break;
+    }
   }
 
-  m_total_grains -= grains_lost;
   m_criticals = new_crits;
+}
+
+void BTWModel::Evolve1(std::deque<std::pair<int, int>> &crits,
+                       std::pair<int, int> site) {
+  int i = site.first;
+  int j = site.second;
+  int grains_lost = 0;
+
+  auto propagate = [&](int a, int b) {
+    if (a >= 0 and a < m_size and b >= 0 and b < m_size) {
+      if (++m_grid[a][b] == 4) {
+        crits.emplace_back(a, b);
+      }
+    } else
+      ++grains_lost;
+  };
+
+  // Increment and store for all neighbors
+  m_grid[i][j] -= 2;
+  propagate(i + ModelUtils::GetRandomNeighbor(), j);
+  propagate(i, j + ModelUtils::GetRandomNeighbor());
+
+  if (m_grid[i][j] >= 4) {
+    crits.emplace_back(i, j);
+  }
+  m_total_grains -= grains_lost;
+}
+
+void BTWModel::EvolveClassical(std::deque<std::pair<int, int>> &crits,
+                               std::pair<int, int> site) {
+  int i = site.first;
+  int j = site.second;
+  int grains_lost = 0;
+
+  auto propagate = [&](int a, int b) {
+    if (a >= 0 and a < m_size and b >= 0 and b < m_size) {
+      if (++m_grid[a][b] == 4) {
+        crits.emplace_back(a, b);
+      }
+    } else
+      ++grains_lost;
+  };
+
+  // Increment and store for all neighbors
+  m_grid[i][j] -= 4;
+  propagate(i + 1, j);
+  propagate(i - 1, j);
+  propagate(i, j + 1);
+  propagate(i, j - 1);
+
+  if (m_grid[i][j] >= 4) {
+    crits.emplace_back(i, j);
+  }
+  m_total_grains -= grains_lost;
 }
 
 std::pair<int, int> BTWModel::AddGrain() {

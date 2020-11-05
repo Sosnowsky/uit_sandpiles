@@ -23,6 +23,8 @@ class BTWModel {
    */
   BTWModel(std::string output_filename, std::string stats_filename, int size);
 
+  enum Mode { classical, random_2 };
+
   /**
    * Initializes the grid randomly.
    */
@@ -42,7 +44,7 @@ class BTWModel {
    * 0, (steps * frequency_grains) grains will be added at uniformly randomly
    * distributed times after pre_steps have been run.
    */
-  void Run(int pre_steps, int steps, double frequency_grains);
+  void Run(int pre_steps, int steps, double frequency_grains, Mode mode);
 
   /**
    * Prints the grid data in std output. Only used for debug/dev.
@@ -51,7 +53,7 @@ class BTWModel {
   std::pair<int, int> AddGrain();
   int GetCriticalSites();
 
- private:
+ protected:
   std::vector<std::vector<int>> m_grid;
   std::deque<std::pair<int, int>> m_criticals;
   const int m_size;
@@ -66,15 +68,29 @@ class BTWModel {
 
   void CheckStatsAndWriteIfNecessary();
   void SaveData();
-  void Step();
+  void Step(Mode mode);
+
+  /**
+   * Evolves the given site, and places any new crits in the given deque.
+   * Evolves according to the rules: m_grid[i][j] -= 2; propagate(i +
+   * ModelUtils::GetRandomNeighbor(), j); propagate(i, j +
+   * ModelUtils::GetRandomNeighbor());
+   * @param crits
+   * @param site
+   */
+  void Evolve1(std::deque<std::pair<int, int>> &crits,
+               std::pair<int, int> site);
+
+  /**
+   * Classical algorithm
+   * @param crits
+   * @param site
+   */
+  void EvolveClassical(std::deque<std::pair<int, int>> &crits,
+                       std::pair<int, int> site);
 
   /**
    * Runs the infinitely slowly driven model.
    */
   void RunClassical(int pre_steps, int steps, bool print = true);
-
-  /**
-   * Runs the running model.
-   */
-  void RunRunning(int pre_steps, int steps, double frequency_grains);
 };

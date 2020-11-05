@@ -31,7 +31,7 @@ TEST_F(ForestFireModelTest, CriticalSitesAtStart) {
     }
   }
   ASSERT_EQ(model.GetBurningTrees(), burning_sites);
-  ASSERT_EQ(model.GetTrees(), empty_sites);
+  ASSERT_EQ(model.GetTrees(), tree_sites);
 }
 
 TEST_F(ForestFireModelTest, Step) {
