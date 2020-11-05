@@ -13,7 +13,7 @@ sudo apt-get install libboost-all-dev
 ```
 cd uit_sandpiles/
 mkdir build
-cd build
+cd build/
 cmake ..
 cmake --build .
 cd src/
