@@ -1,11 +1,12 @@
-#include "BTW3dModel.h"
-#include "BTWModel.h"
-#include "ForestFireModel.h"
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
+#include "BTW3dModel.h"
+#include "BTWModel.h"
+#include "ForestFireModel.h"
+#include "dynamics/DynamicsFactory.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -51,13 +52,14 @@ int main(int ac, char *av[]) {
   string stats = vm["stats"].as<string>();
 
   if (model_to_run == "btw") {
-    unique_ptr<BTWModel> model =
-        std::make_unique<BTWModel>(BTWModel(output, stats, size));
+    unique_ptr<BTWModel> model = std::make_unique<BTWModel>(BTWModel(
+        output, stats, size,
+        DynamicsFactory::BuildDynamics(ModelDynamics::dynamics(param1))));
 
     model->InitializeMap();
     auto start = high_resolution_clock::now();
 
-    model->Run(pre_steps, steps, frequency_grains, BTWModel::Mode(param1));
+    model->Run(pre_steps, steps, frequency_grains);
 
     auto stop = high_resolution_clock::now();
     auto run_duration = duration_cast<microseconds>(stop - start);

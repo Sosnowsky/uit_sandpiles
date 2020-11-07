@@ -1,15 +1,15 @@
 #ifndef SANDPILESCPP__BTWMODEL_H_
 #define SANDPILESCPP__BTWMODEL_H_
 
-#endif  // SANDPILESCPP__BTWMODEL_H_
-
 #include <chrono>
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+#include "dynamics/ModelDynamics.h"
 
 class BTWModel {
  public:
@@ -21,9 +21,9 @@ class BTWModel {
    * @param output_filename
    * @param stats_filename
    */
-  BTWModel(std::string output_filename, std::string stats_filename, int size);
-
-  enum Mode { classical, random_2 };
+  BTWModel(const std::string &output_filename,
+           const std::string &stats_filename, int size,
+           std::unique_ptr<ModelDynamics> dynamics);
 
   /**
    * Initializes the grid randomly.
@@ -44,16 +44,16 @@ class BTWModel {
    * 0, (steps * frequency_grains) grains will be added at uniformly randomly
    * distributed times after pre_steps have been run.
    */
-  void Run(int pre_steps, int steps, double frequency_grains, Mode mode);
+  void Run(int pre_steps, int steps, double frequency_grains);
 
   /**
    * Prints the grid data in std output. Only used for debug/dev.
    */
   void PrintMap();
-  std::pair<int, int> AddGrain();
   int GetCriticalSites();
 
  protected:
+  std::unique_ptr<ModelDynamics> m_dynamics;
   std::vector<std::vector<int>> m_grid;
   std::deque<std::pair<int, int>> m_criticals;
   const int m_size;
@@ -68,29 +68,11 @@ class BTWModel {
 
   void CheckStatsAndWriteIfNecessary();
   void SaveData();
-  void Step(Mode mode);
-
-  /**
-   * Evolves the given site, and places any new crits in the given deque.
-   * Evolves according to the rules: m_grid[i][j] -= 2; propagate(i +
-   * ModelUtils::GetRandomNeighbor(), j); propagate(i, j +
-   * ModelUtils::GetRandomNeighbor());
-   * @param crits
-   * @param site
-   */
-  void Evolve1(std::deque<std::pair<int, int>> &crits,
-               std::pair<int, int> site);
-
-  /**
-   * Classical algorithm
-   * @param crits
-   * @param site
-   */
-  void EvolveClassical(std::deque<std::pair<int, int>> &crits,
-                       std::pair<int, int> site);
 
   /**
    * Runs the infinitely slowly driven model.
    */
   void RunClassical(int pre_steps, int steps, bool print = true);
 };
+
+#endif  // SANDPILESCPP__BTWMODEL_H_

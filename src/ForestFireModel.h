@@ -1,11 +1,5 @@
-//
-// Created by sosnovsky on 11/4/20.
-//
-
 #ifndef BTWSIM_SRC_FORESTFIREMODEL_H_
 #define BTWSIM_SRC_FORESTFIREMODEL_H_
-
-#endif  // BTWSIM_SRC_FORESTFIREMODEL_H_
 
 #include <chrono>
 #include <deque>
@@ -68,3 +62,5 @@ class ForestFireModel {
   void SetTreeOnFire();
   void GrowTree();
 };
+
+#endif  // BTWSIM_SRC_FORESTFIREMODEL_H_

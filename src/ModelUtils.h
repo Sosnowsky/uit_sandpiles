@@ -1,8 +1,6 @@
 #ifndef BTWSIM_SRC_MODELUTILS_H_
 #define BTWSIM_SRC_MODELUTILS_H_
 
-#endif  // BTWSIM_SRC_MODELUTILS_H_
-
 class ModelUtils {
  public:
   /**
@@ -21,3 +19,5 @@ class ModelUtils {
    */
   static int GetRandomNeighbor();
 };
+
+#endif  // BTWSIM_SRC_MODELUTILS_H_

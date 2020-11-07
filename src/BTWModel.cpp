@@ -1,16 +1,15 @@
 #include "BTWModel.h"
 #include <algorithm>
-#include <deque>
 #include <iostream>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
-#include "ModelUtils.h"
 
-BTWModel::BTWModel(std::string output_filename, std::string stats_filename,
-                   int size)
-    : m_size(size) {
+BTWModel::BTWModel(const std::string &output_filename,
+                   const std::string &stats_filename, int size,
+                   std::unique_ptr<ModelDynamics> mode)
+    : m_size(size), m_dynamics(std::move(mode)) {
   m_output.open(output_filename);
   m_stats.open(stats_filename);
   m_output << "critical_cells,total_grains" << std::endl;
@@ -18,18 +17,8 @@ BTWModel::BTWModel(std::string output_filename, std::string stats_filename,
 }
 
 void BTWModel::InitializeMap() {
-  for (int i = 0; i < m_size; i++) {
-    std::vector<int> row;
-    for (int j = 0; j < m_size; j++) {
-      int amount = rand() % 4;
-      if (amount < 3) {
-        if (rand() % 4 != 1) amount++;
-      }
-      m_total_grains += amount;
-      row.push_back(amount);
-    }
-    m_grid.push_back(row);
-  }
+  m_grid = std::vector<std::vector<int>>(m_size, std::vector<int>(m_size, 0));
+  m_total_grains = m_dynamics->InitializeMap(m_grid);
 }
 
 /**
@@ -40,8 +29,7 @@ void BTWModel::InitializeMap() {
  * @param pre_steps
  * @param steps
  */
-void BTWModel::Run(int pre_steps, int steps, double frequency_grains,
-                   Mode mode) {
+void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
   if (frequency_grains < 0) return RunClassical(pre_steps, steps);
   if (frequency_grains > 1) {
     std::cout << "ERROR: Frequency should be <= 1" << std::endl;
@@ -65,7 +53,7 @@ void BTWModel::Run(int pre_steps, int steps, double frequency_grains,
   int grain_inx = 0;
 
   auto update = [&]() {
-    Step(mode);
+    m_total_grains += m_dynamics->Evolve(m_criticals, m_grid);
     t++;
     SaveData();
     CheckStatsAndWriteIfNecessary();
@@ -80,9 +68,7 @@ void BTWModel::Run(int pre_steps, int steps, double frequency_grains,
     while (t < add_grain_times[grain_inx]) update();
 
     // Time to add a grain
-    std::pair<int, int> pos_added = AddGrain();
-    if (m_grid[pos_added.first][pos_added.second] >= 4)
-      m_criticals.emplace_back(pos_added.first, pos_added.second);
+    m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
     grain_inx++;
   }
 
@@ -105,11 +91,9 @@ void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
     }
 
     if (m_criticals.empty()) {
-      std::pair<int, int> pos_added = AddGrain();
-      if (m_grid[pos_added.first][pos_added.second] >= 4)
-        m_criticals.emplace_back(pos_added.first, pos_added.second);
+      m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
     } else
-      Step(Mode::classical);
+      m_total_grains += m_dynamics->Evolve(m_criticals, m_grid);
 
     if (t > pre_steps) {
       SaveData();
@@ -145,86 +129,6 @@ void BTWModel::PrintMap() {
 
 void BTWModel::SaveData() {
   m_output << m_criticals.size() << "," << m_total_grains << std::endl;
-}
-
-void BTWModel::Step(Mode mode) {
-  std::deque<std::pair<int, int>>
-      new_crits;  // Stores the positions of unstable guys
-
-  for (auto &p : m_criticals) {
-    switch (mode) {
-      case random_2:
-        Evolve1(new_crits, p);
-        break;
-      case classical:
-        EvolveClassical(new_crits, p);
-        break;
-    }
-  }
-
-  m_criticals = new_crits;
-}
-
-void BTWModel::Evolve1(std::deque<std::pair<int, int>> &crits,
-                       std::pair<int, int> site) {
-  int i = site.first;
-  int j = site.second;
-  int grains_lost = 0;
-
-  auto propagate = [&](int a, int b) {
-    if (a >= 0 and a < m_size and b >= 0 and b < m_size) {
-      if (++m_grid[a][b] == 4) {
-        crits.emplace_back(a, b);
-      }
-    } else
-      ++grains_lost;
-  };
-
-  // Increment and store for all neighbors
-  m_grid[i][j] -= 2;
-  propagate(i + ModelUtils::GetRandomNeighbor(), j);
-  propagate(i, j + ModelUtils::GetRandomNeighbor());
-
-  if (m_grid[i][j] >= 4) {
-    crits.emplace_back(i, j);
-  }
-  m_total_grains -= grains_lost;
-}
-
-void BTWModel::EvolveClassical(std::deque<std::pair<int, int>> &crits,
-                               std::pair<int, int> site) {
-  int i = site.first;
-  int j = site.second;
-  int grains_lost = 0;
-
-  auto propagate = [&](int a, int b) {
-    if (a >= 0 and a < m_size and b >= 0 and b < m_size) {
-      if (++m_grid[a][b] == 4) {
-        crits.emplace_back(a, b);
-      }
-    } else
-      ++grains_lost;
-  };
-
-  // Increment and store for all neighbors
-  m_grid[i][j] -= 4;
-  propagate(i + 1, j);
-  propagate(i - 1, j);
-  propagate(i, j + 1);
-  propagate(i, j - 1);
-
-  if (m_grid[i][j] >= 4) {
-    crits.emplace_back(i, j);
-  }
-  m_total_grains -= grains_lost;
-}
-
-std::pair<int, int> BTWModel::AddGrain() {
-  int i = rand() % m_size;
-  int j = rand() % m_size;
-  m_grid[i][j]++;
-  m_total_grains++;
-  return {i, j};
 }
 
 int BTWModel::GetCriticalSites() { return m_criticals.size(); }

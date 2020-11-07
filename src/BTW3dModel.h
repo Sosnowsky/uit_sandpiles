@@ -1,8 +1,6 @@
 #ifndef BTWSIM_SRC_BTW3DMODEL_H_
 #define BTWSIM_SRC_BTW3DMODEL_H_
 
-#endif  // BTWSIM_SRC_BTW3DMODEL_H_
-
 #include <chrono>
 #include <deque>
 #include <fstream>
@@ -47,7 +45,7 @@ class BTW3dModel {
   std::tuple<int, int, int> AddGrain();
   int GetCriticalSites();
   int GetTotalGrains();
-  std::vector<std::vector<std::vector<int>>>& GetGrid();
+  std::vector<std::vector<std::vector<int>>> &GetGrid();
 
  private:
   std::vector<std::vector<std::vector<int>>> m_grid;
@@ -64,3 +62,5 @@ class BTW3dModel {
    */
   void RunClassical(int pre_steps, int steps, bool print = true);
 };
+
+#endif  // BTWSIM_SRC_BTW3DMODEL_H_
