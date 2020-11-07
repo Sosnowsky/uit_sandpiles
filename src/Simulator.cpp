@@ -1,11 +1,11 @@
+#include "BTW3dModel.h"
+#include "BTWModel.h"
+#include "ForestFireModel.h"
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
-#include "BTW3dModel.h"
-#include "BTWModel.h"
-#include "ForestFireModel.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -14,18 +14,20 @@ using namespace boost::program_options;
 int main(int ac, char *av[]) {
   options_description desc("Allowed options");
   desc.add_options()("help,h", "print usage message")(
-      "grid_size,L", value<int>()->default_value(1024), "the size of the grid")(
+      "grid_size,L", value<int>()->default_value(1024),
+      "the side length of the grid")(
       "model,M", value<string>()->default_value("btw"),
       "Model to run, possible values btw, ff, btw3d")(
       "pre_steps,p", value<int>()->default_value(0),
-      "number of steps run before writing output. Used in btw model")(
+      "number of steps run before writing output. Used in btw and btw3d "
+      "models")(
       "param1,A", value<int>()->default_value(0),
       "Used in the forest fire model to specify grow_trees_per_time_step. In "
-      "the btw model, it specifies the mode of the model")(
-      "steps,s", value<int>()->default_value(10000),
-      "number of steps run writing output. Used in all models")(
+      "the btw model, it specifies the mode of the model (0 -> classical, 1 -> "
+      "random_2)")("steps,s", value<int>()->default_value(10000),
+                   "number of steps run writing output. Used in all models")(
       "frequency,f", value<double>()->default_value(-1),
-      "frequency of added grains from running model. Used in btw model.")(
+      "frequency of added grains from running model. Used in all models.")(
       "output,o", value<string>()->default_value("output.txt"),
       "output file for main timeseries. Used in all models")(
       "stats", value<string>()->default_value("stats.txt"),
@@ -40,7 +42,6 @@ int main(int ac, char *av[]) {
   }
 
   string model_to_run = vm["model"].as<string>();
-
   int size = vm["grid_size"].as<int>();
   int pre_steps = vm["pre_steps"].as<int>();
   int steps = vm["steps"].as<int>();
