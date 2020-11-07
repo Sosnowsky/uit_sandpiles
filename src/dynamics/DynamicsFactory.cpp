@@ -9,5 +9,7 @@ std::unique_ptr<ModelDynamics> DynamicsFactory::BuildDynamics(
       return std::unique_ptr<ModelDynamics>(new BTWClassicalDynamics());
     case ModelDynamics::random2:
       return std::unique_ptr<ModelDynamics>(new BTWRandom2Dynamics());
+    default:
+      throw std::invalid_argument("Unimplemented");
   }
 }
