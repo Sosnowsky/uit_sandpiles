@@ -25,8 +25,9 @@ int main(int ac, char *av[]) {
       "param1,A", value<int>()->default_value(0),
       "Used in the forest fire model to specify grow_trees_per_time_step. In "
       "the btw model, it specifies the mode of the model (0 -> classical, 1 -> "
-      "random_2)")("steps,s", value<int>()->default_value(10000),
-                   "number of steps run writing output. Used in all models")(
+      "random_2, 2 -> nnn)")(
+      "steps,s", value<int>()->default_value(10000),
+      "number of steps run writing output. Used in all models")(
       "frequency,f", value<double>()->default_value(-1),
       "frequency of added grains from running model. Used in all models.")(
       "output,o", value<string>()->default_value("output.txt"),

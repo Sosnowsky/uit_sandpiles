@@ -11,7 +11,7 @@
 
 class ModelDynamics {
  public:
-  enum dynamics { classical, random2 };
+  enum dynamics { classical, random2, nnn };
 
   virtual long InitializeMap(std::vector<std::vector<int>> &grid) = 0;
   virtual int AddGrain(std::deque<std::pair<int, int>> &crits,
