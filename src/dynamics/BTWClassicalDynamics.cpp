@@ -42,12 +42,16 @@ int BTWClassicalDynamics::Evolve(std::deque<std::pair<int, int>> &crits,
     if (grid[i][j] < 4) continue;
 
     auto propagate = [&](int a, int b) {
-      if (a >= 0 and a < size and b >= 0 and b < size) {
-        if (++grid[a][b] >= 4) {
-          new_crits.emplace_back(a, b);
-        }
-      } else
+      if (a == 0 and b == 0) {
         ++grains_lost;
+      }
+      if (b < 0)
+        b += size;
+      if (a < 0)
+        a += size;
+      if (++grid[a % size][b % size] >= 4) {
+        new_crits.emplace_back(a % size, b % size);
+      }
     };
 
     // Increment and store for all neighbors
