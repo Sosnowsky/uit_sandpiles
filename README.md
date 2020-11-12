@@ -6,8 +6,10 @@ git clone https://github.com/Sosnowsky/uit_sandpiles.git
 ```
 #### Install cmake and boost
 ```
+sudo apt-get update
 sudo apt install cmake
 sudo apt-get install libboost-all-dev
+sudo apt-get install build-essential
 ```
 #### Build
 ```

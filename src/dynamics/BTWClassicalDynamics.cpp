@@ -44,6 +44,7 @@ int BTWClassicalDynamics::Evolve(std::deque<std::pair<int, int>> &crits,
     auto propagate = [&](int a, int b) {
       if (a == 0 and b == 0) {
         ++grains_lost;
+	return;
       }
       if (b < 0)
         b += size;
