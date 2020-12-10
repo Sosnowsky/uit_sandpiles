@@ -1,8 +1,8 @@
 #include "BTWClassicalDynamics.h"
+#include "ModelUtils.h"
 #include <deque>
 #include <utility>
 #include <vector>
-#include "ModelUtils.h"
 
 long BTWClassicalDynamics::InitializeMap(std::vector<std::vector<int>> &grid) {
   int size = grid.size();
@@ -26,33 +26,30 @@ int BTWClassicalDynamics::AddGrain(std::deque<std::pair<int, int>> &crits,
   int j = ModelUtils::GetRandomInt() % size;
   grid[i][j]++;
 
-  if (grid[i][j] >= 4) crits.emplace_back(i, j);
+  if (grid[i][j] >= 4)
+    crits.emplace_back(i, j);
   return 1;
 }
 
 int BTWClassicalDynamics::Evolve(std::deque<std::pair<int, int>> &crits,
                                  std::vector<std::vector<int>> &grid) {
   std::deque<std::pair<int, int>>
-      new_crits;  // Stores the positions of unstable guys
+      new_crits; // Stores the positions of unstable guys
   int size = grid.size();
   int grains_lost = 0;
   for (auto &p : crits) {
     int i = p.first;
     int j = p.second;
-    if (grid[i][j] < 4) continue;
+    if (grid[i][j] < 4)
+      continue;
 
     auto propagate = [&](int a, int b) {
-      if (a == 0 and b == 0) {
+      if (a >= 0 and a < size and b >= 0 and b < size) {
+        if (++grid[a][b] >= 4) {
+          new_crits.emplace_back(a, b);
+        }
+      } else
         ++grains_lost;
-	return;
-      }
-      if (b < 0)
-        b += size;
-      if (a < 0)
-        a += size;
-      if (++grid[a % size][b % size] >= 4) {
-        new_crits.emplace_back(a % size, b % size);
-      }
     };
 
     // Increment and store for all neighbors
