@@ -1,12 +1,12 @@
+#include "BTW3dModel.h"
+#include "BTWModel.h"
+#include "ForestFireModel.h"
+#include "dynamics/DynamicsFactory.h"
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
-#include "BTW3dModel.h"
-#include "BTWModel.h"
-#include "ForestFireModel.h"
-#include "dynamics/DynamicsFactory.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -19,9 +19,10 @@ int main(int ac, char *av[]) {
       "the side length of the grid")(
       "model,M", value<string>()->default_value("btw"),
       "Model to run, possible values btw, ff, btw3d")(
-      "pre_steps,p", value<int>()->default_value(0),
+      "pre_steps,p", value<int>()->default_value(1),
       "number of steps run before writing output. Used in btw and btw3d "
-      "models")(
+      "models. For btw, any value > 0 will let the model run until it detects "
+      "criticality")(
       "param1,A", value<int>()->default_value(0),
       "Used in the forest fire model to specify grow_trees_per_time_step. In "
       "the btw model, it specifies the mode of the model (0 -> classical, 1 -> "
@@ -60,7 +61,7 @@ int main(int ac, char *av[]) {
     model->InitializeMap();
     auto start = high_resolution_clock::now();
 
-    model->Run(pre_steps, steps, frequency_grains);
+    model->Run(pre_steps > 0, steps, frequency_grains);
 
     auto stop = high_resolution_clock::now();
     auto run_duration = duration_cast<microseconds>(stop - start);

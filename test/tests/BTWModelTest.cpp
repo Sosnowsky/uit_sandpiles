@@ -8,7 +8,6 @@ class BTWModelTest : public ::testing::Test {
 };
 
 TEST_F(BTWModelTest, CriticalSitesAtStart) {
-  std::cout << "";
   ASSERT_EQ(model.GetCriticalSites(), 0);
 }
 

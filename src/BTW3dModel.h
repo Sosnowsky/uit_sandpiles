@@ -10,7 +10,7 @@
 #include <vector>
 
 class BTW3dModel {
- public:
+public:
   /**
    * Initializes a grid of size {@link size} (number of sites given by sites ^
    * 2), output is used to store the timeseries consisting of the total number
@@ -47,7 +47,7 @@ class BTW3dModel {
   int GetTotalGrains();
   std::vector<std::vector<std::vector<int>>> &GetGrid();
 
- private:
+private:
   std::vector<std::vector<std::vector<int>>> m_grid;
   std::deque<std::tuple<int, int, int>> m_criticals;
   const int m_size;
@@ -63,4 +63,4 @@ class BTW3dModel {
   void RunClassical(int pre_steps, int steps, bool print = true);
 };
 
-#endif  // BTWSIM_SRC_BTW3DMODEL_H_
+#endif // BTWSIM_SRC_BTW3DMODEL_H_

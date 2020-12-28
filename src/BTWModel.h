@@ -1,6 +1,7 @@
 #ifndef SANDPILESCPP__BTWMODEL_H_
 #define SANDPILESCPP__BTWMODEL_H_
 
+#include "dynamics/ModelDynamics.h"
 #include <chrono>
 #include <deque>
 #include <fstream>
@@ -9,10 +10,9 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "dynamics/ModelDynamics.h"
 
 class BTWModel {
- public:
+public:
   /**
    * Initializes a grid of size {@link size} (number of sites given by sites ^
    * 2), output is used to store the timeseries consisting of the total number
@@ -37,14 +37,15 @@ class BTWModel {
    * TODO: Drop pre_steps argument by detecting criticality automatically
    * (simplest is to reach state with approximately constant number of total
    * grains).
-   * @param pre_steps Number of steps run without writing data.
+   * @param pre_run Whether the system should run to criticality without writing
+   * output.
    * @param steps Number of steps run writing data.
    * @param frequency_grains How often should grains be added on average. If set
    * to -1, it runs the classical slow driven model, for 1 > frequency_grains >
    * 0, (steps * frequency_grains) grains will be added at uniformly randomly
    * distributed times after pre_steps have been run.
    */
-  void Run(int pre_steps, int steps, double frequency_grains);
+  void Run(bool pre_run, int steps, double frequency_grains);
 
   /**
    * Prints the grid data in std output. Only used for debug/dev.
@@ -52,7 +53,10 @@ class BTWModel {
   void PrintMap();
   int GetCriticalSites();
 
- protected:
+protected:
+  constexpr static double MAX_CHANGE_TO_SOC =
+      0.001; // Used to detect when the systems arrives at SOC
+
   std::unique_ptr<ModelDynamics> m_dynamics;
   std::vector<std::vector<int>> m_grid;
   std::deque<std::pair<int, int>> m_criticals;
@@ -66,13 +70,10 @@ class BTWModel {
   long m_area = 0;
   long m_quiet = 0;
 
+  void RunToCriticality();
+  void HandleRunningModel(double frequency);
   void CheckStatsAndWriteIfNecessary();
   void SaveData();
-
-  /**
-   * Runs the infinitely slowly driven model.
-   */
-  void RunClassical(int pre_steps, int steps, bool print = true);
 };
 
-#endif  // SANDPILESCPP__BTWMODEL_H_
+#endif // SANDPILESCPP__BTWMODEL_H_

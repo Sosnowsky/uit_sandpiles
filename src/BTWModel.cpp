@@ -1,7 +1,6 @@
 #include "BTWModel.h"
-#include <algorithm>
+#include "ModelUtils.h"
 #include <iostream>
-#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,75 +28,65 @@ void BTWModel::InitializeMap() {
  * @param pre_steps
  * @param steps
  */
-void BTWModel::Run(int pre_steps, int steps, double frequency_grains) {
-  if (frequency_grains < 0) return RunClassical(pre_steps, steps);
-  if (frequency_grains > 1) {
-    std::cout << "ERROR: Frequency should be <= 1" << std::endl;
-    return;
-  }
-  RunClassical(pre_steps, 0, true);
+void BTWModel::Run(bool run, int steps, double frequency) {
+  if (run)
+    RunToCriticality();
 
-  int total_grains_to_add = int(steps * frequency_grains);
-  std::vector<int> add_grain_times;
-
-  std::default_random_engine generator;
-  std::uniform_int_distribution<int> distribution(0, steps);
-
-  for (int i = 0; i < total_grains_to_add; i++) {
-    add_grain_times.push_back(distribution(generator));
-  }
-
-  std::sort(add_grain_times.begin(), add_grain_times.end(), std::less<>());
-
-  int t = 0;
-  int grain_inx = 0;
-
-  auto update = [&]() {
-    m_total_grains += m_dynamics->Evolve(m_criticals, m_grid);
-    t++;
-    SaveData();
-    CheckStatsAndWriteIfNecessary();
-
-    if (t % 1000000 == 0) {
-      float perc = float(t) / float(steps + pre_steps) * 100;
-      std::cout << "Done " << perc << "%" << std::endl;
-    }
-  };
-
-  while (grain_inx < add_grain_times.size()) {
-    while (t < add_grain_times[grain_inx]) update();
-
-    // Time to add a grain
-    m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
-    grain_inx++;
-  }
-
-  while (t < steps) update();
-}
-
-void BTWModel::RunClassical(int pre_steps, int steps, bool print) {
-  bool arrived_at_soc = false;
-  for (int t = 0; t < steps + pre_steps; t++) {
-    if (!arrived_at_soc and
-        float(m_total_grains) / float(m_size * m_size) > 2.125) {
-      arrived_at_soc = true;
-      std::cout << "Arrived at critical density 2.125 at step: " << t
-                << std::endl;
-    }
-
-    if (t % 1000000 == 0 && print) {
-      float perc = float(t) / float(steps + pre_steps) * 100;
+  for (int t = 0; t < steps; t++) {
+    if (t % (1000 * 1000) == 0) {
+      float perc = float(t) / float(steps) * 100;
       std::cout << "Done " << perc << "% total " << m_total_grains << std::endl;
     }
 
-    if (m_criticals.empty()) {
+    if (frequency > 0)
+      HandleRunningModel(frequency);
+
+    if (m_criticals.empty() and frequency <= 0) {
       m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
     } else
       m_total_grains += m_dynamics->Evolve(m_criticals, m_grid);
 
-    if (t > pre_steps) {
-      SaveData();
-      CheckStatsAndWriteIfNecessary();
+    SaveData();
+    CheckStatsAndWriteIfNecessary();
+  }
+}
+
+/**
+ * For frequency in (0, 1] add a grain with probability frequency. For frequency
+ * > 1 add int(frequency) grains.
+ * @param frequency
+ */
+void BTWModel::HandleRunningModel(double frequency) {
+  if (frequency > 0 and frequency <= 1 and
+      ModelUtils::GetRandomDouble() < frequency) {
+    m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
+    return;
+  }
+  if (frequency > 1) {
+    int to_add = int(frequency);
+    while (to_add--)
+      m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
+  }
+}
+
+/**
+ * Runs the model without writing the data, until the change in total grains is small.
+ */
+void BTWModel::RunToCriticality() {
+  while (true) {
+    long grains_before = m_total_grains;
+    std::cout << "Waiting to arrive to criticality... Total grains: "
+              << m_total_grains << std::endl;
+    for (int i = 0; i < m_size * m_size; i++) {
+      if (m_criticals.empty()) {
+        m_total_grains += m_dynamics->AddGrain(m_criticals, m_grid);
+      } else
+        m_total_grains += m_dynamics->Evolve(m_criticals, m_grid);
+    }
+    long grains_after = m_total_grains;
+    if (std::abs(float(grains_after - grains_before) / float(grains_before)) <
+        MAX_CHANGE_TO_SOC) {
+      return;
     }
   }
 }

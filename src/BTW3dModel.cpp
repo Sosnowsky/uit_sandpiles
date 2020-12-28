@@ -1,4 +1,5 @@
 #include "BTW3dModel.h"
+#include "ModelUtils.h"
 #include <algorithm>
 #include <deque>
 #include <iostream>
@@ -6,7 +7,6 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include "ModelUtils.h"
 
 BTW3dModel::BTW3dModel(std::string output_filename, int size) : m_size(size) {
   m_output.open(output_filename);
@@ -37,7 +37,8 @@ void BTW3dModel::InitializeMap() {
  * @param steps
  */
 void BTW3dModel::Run(int pre_steps, int steps, double frequency_grains) {
-  if (frequency_grains < 0) return RunClassical(pre_steps, steps);
+  if (frequency_grains < 0)
+    return RunClassical(pre_steps, steps);
   if (frequency_grains > 1) {
     std::cout << "ERROR: Frequency should be <= 1" << std::endl;
     return;
@@ -59,7 +60,8 @@ void BTW3dModel::Run(int pre_steps, int steps, double frequency_grains) {
     if (t % period_grains == 0) {
       // Time to add a grain
       auto [i, j, k] = AddGrain();
-      if (m_grid[i][j][k] >= 4) m_criticals.emplace_back(i, j, k);
+      if (m_grid[i][j][k] >= 4)
+        m_criticals.emplace_back(i, j, k);
     }
   }
 }
@@ -81,7 +83,8 @@ void BTW3dModel::RunClassical(int pre_steps, int steps, bool print) {
 
     if (m_criticals.empty()) {
       auto [i, j, k] = AddGrain();
-      if (m_grid[i][j][k] >= 6) m_criticals.emplace_back(i, j, k);
+      if (m_grid[i][j][k] >= 6)
+        m_criticals.emplace_back(i, j, k);
     } else
       Step();
 
@@ -98,7 +101,7 @@ void BTW3dModel::SaveData() {
 void BTW3dModel::Step() {
   int grains_lost = 0;
   std::deque<std::tuple<int, int, int>>
-      new_crits;  // Stores the positions of unstable guys
+      new_crits; // Stores the positions of unstable guys
 
   for (auto [i, j, k] : m_criticals) {
     auto propagate = [&](int a, int b, int c) {
